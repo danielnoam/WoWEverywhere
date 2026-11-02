@@ -113,7 +113,7 @@ class GameConfigTest {
     }
 
     @Test
-    fun staleResolutionIsReset() {
+    fun resolutionAlwaysMatchesTheContainer() {
         val existing = listOf(
             "SET portal \"US\"",
             "SET gxApi \"D3D11\"",
@@ -122,7 +122,8 @@ class GameConfigTest {
         )
         val lines = buildConfigWtf(existing, WowProduct.FOREVER, "1920x1080")!!
         assertTrue("SET gxFullscreenResolution \"1920x1080\"" in lines)
-        assertTrue("SET gxWindowedResolution \"1280x720\"" in lines)
+        assertTrue("SET gxWindowedResolution \"1920x1080\"" in lines)
+        assertTrue(lines.none { it.contains("1280x720") || it.contains("2560x1440") })
     }
 
     @Test

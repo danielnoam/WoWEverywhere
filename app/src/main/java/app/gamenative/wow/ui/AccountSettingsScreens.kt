@@ -67,7 +67,7 @@ internal fun FwSection(title: String, content: @Composable () -> Unit) {
 }
 
 private val settingsPanes = listOf(
-    PaneSpec("App", "App version and updates."),
+    PaneSpec("App", "App version, updates, resolution and frame generation."),
     PaneSpec("Battle.net", "One saved login for every Blizzard profile."),
     PaneSpec("Addon sources", "Where Addons searches, and your CurseForge key or proxy."),
     PaneSpec("About", "This device, the project and its source code."),
@@ -122,6 +122,7 @@ private fun AppPane(launcher: LauncherController, setHint: (String) -> Unit) {
         }
     }
     ResolutionChoice(launcher, setHint)
+    FrameGenerationChoice(setHint)
 }
 
 /** Settings, App: the game's screen size, from the device profile or picked here. */

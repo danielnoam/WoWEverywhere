@@ -21,6 +21,7 @@ import app.gamenative.ui.screen.wow.installLocale
 import app.gamenative.wow.addons.CurseForgeAccess
 import app.gamenative.wow.install.GameInstaller
 import app.gamenative.wow.install.InstallController
+import app.gamenative.wow.install.DownloadSpeed
 import app.gamenative.wow.install.InstallProgress
 import app.gamenative.wow.install.InstallRequest
 import app.gamenative.wow.install.InstallUiState
@@ -596,11 +597,13 @@ class LauncherController(
                 // The full installer, not upstream's binaries-only updater: patches also change the
                 // client's .dat/.pak/.bin files (see the installer spike notes).
                 val root = File(gamePath)
+                val speed = DownloadSpeed()
                 GameInstaller().run(InstallRequest(root, product, installLocale(root, product))) { p ->
+                    val summary = downloadSummary(p, speed)
                     scope.launch(Dispatchers.Main) {
                         updateStatusText = when (p.phase) {
                             InstallProgress.Phase.RESOLVING -> "Reading build ${target.remoteVersion}..."
-                            InstallProgress.Phase.DOWNLOADING -> p.fraction?.let { "Updating game files ${(it * 100).toInt()}%" } ?: "Updating game files..."
+                            InstallProgress.Phase.DOWNLOADING -> p.fraction?.let { "Updating game files ${(it * 100).toInt()}%$summary" } ?: "Updating game files..."
                             else -> "Finishing update..."
                         }
                     }
@@ -631,9 +634,11 @@ class LauncherController(
                     ProductConverter.applyLocal(root, WowProduct.BETA, WowProduct.FOREVER)
                     // The installer always asks the patch service for the launch build (and its KeyRing), so
                     // offline it fails cleanly instead of reusing the beta build keys cloned into the new row.
+                    val speed = DownloadSpeed()
                     GameInstaller().run(InstallRequest(root, WowProduct.FOREVER, installLocale(root, WowProduct.BETA))) { p ->
+                        val summary = downloadSummary(p, speed)
                         scope.launch(Dispatchers.Main) {
-                            updateStatusText = p.fraction?.let { "Downloading the launch version ${(it * 100).toInt()}%" } ?: "Preparing the launch version..."
+                            updateStatusText = p.fraction?.let { "Downloading the launch version ${(it * 100).toInt()}%$summary" } ?: "Preparing the launch version..."
                         }
                     }
                 }
@@ -764,4 +769,11 @@ class LauncherController(
     private companion object {
         const val READY = "Ready to launch"
     }
+}
+
+/** "  ·  1.2 GB of 3.0 GB  ·  12.0 MB/s  ·  about 3 min left" for a status line, measured on what came from the network. */
+private fun downloadSummary(p: InstallProgress, speed: DownloadSpeed): String {
+    if (p.totalBytes <= 0) return ""
+    val bytesPerSecond = speed.add(p.fetchedBytes, System.nanoTime() / 1_000_000)
+    return "  ·  " + DownloadSpeed.summary(p, bytesPerSecond)
 }

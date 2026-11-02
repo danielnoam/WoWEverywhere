@@ -34,6 +34,7 @@ import app.gamenative.ui.screen.wow.GamePath
 import app.gamenative.ui.screen.wow.WowClientDownloader
 import app.gamenative.utils.StorageUtils
 import app.gamenative.wow.AppName
+import app.gamenative.wow.install.DownloadSpeed
 import app.gamenative.wow.install.InstallController
 import app.gamenative.wow.install.InstallRequest
 import app.gamenative.wow.install.InstallUiState
@@ -245,8 +246,10 @@ fun InstallStep(launcher: LauncherController, onDone: () -> Unit, onBack: () -> 
         is InstallUiState.Running -> {
             Text("Downloading from Blizzard's servers to ${s.request.root}. You can leave the app: the download keeps going and shows progress in your notifications.", style = Fw.Text)
             val p = s.progress
+            val meter = remember(s.request) { DownloadSpeed() }
+            val bytesPerSecond = remember(p) { meter.add(p.fetchedBytes, System.nanoTime() / 1_000_000) }
             Text(
-                if (p.totalBytes > 0) p.sizeText else "Reading the build manifest…",
+                if (p.totalBytes > 0) DownloadSpeed.summary(p, bytesPerSecond) else "Reading the build manifest…",
                 style = Fw.Data.copy(color = Fw.Bone),
             )
             FwProgress(p.fraction)

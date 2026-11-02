@@ -2,6 +2,12 @@
 
 Why things are the way they are, newest first.
 
+## 2026-11-02: Six changes from upstream 0.6.0 and jaredgei 2.3.3
+
+Checked upstream up to its 2026-11-01 merge of jaredgei 2.3.3 (by content, as before). Taken: keep running in the background, resolution forced to the container size, the launch game without a fixed date, Adreno 8xx detection for SM8735 and SM8845, frame generation with the player's own Lossless.dll, and download speed. Left out: upstream's controller test and debug report (Share log and Controller Menus cover what Daniel needs), the Android 10 legacy storage flag (not a target), and upstream's Launch or Beta setting and its start-up prompt to switch (the beta is winding down and a setting would have to be per profile here; the existing Game files switch stays).
+
+Trade-offs, said plainly. The game no longer pauses in the background (`suspendPolicy = never` for both containers), so it keeps using CPU, GPU and battery until it's closed; Daniel asked for it because a paused client loses its connection while he reads the Warmane email code. Lossless.dll is a file the player supplies; the app checks it starts with "MZ" and is a plausible size, keeps it in private storage and never ships it, but the bundled lsfg-vk layer then reads its shaders natively outside Wine, so a tampered file is trusted as far as that layer trusts it. Frame generation is off unless a file is chosen. Upstream's download panel component wasn't ported: the speed goes into the fork's existing status lines and install screen, so no screen layout changed.
+
 ## 2026-10-30: 1.0.0 is named WoWEverywhere, and takes four upstream changes
 
 Daniel renamed the app WoWEverywhere for 1.0.0 (he typed "WoWEverywere" and picked the spelling with the h). Only what the player sees changed: `AppName`, `app_name`, the "WoWEverywhere patches" label in the Client tab, the add-on TOC titles, the APK file name, the release name and the user agent. As with the AndroWhere rename, the package id, keystore alias, on-disk files (`AndroWhere_LevelUp`, `!ConsolePortLK_AndroWhere`, the Controller Menus Lua names, the `.androwhere-original` Wow.exe backup) stay, so updates install over 0.9.x and nothing on the player's storage is orphaned. The GitHub repository was renamed to `danielnoam/WoWEverywhere` the same day at his request; the app's URLs were moved to the new name, and older installs keep working through GitHub's redirects from the old name (API, release downloads and raw files). The updater picks any `.apk` asset, so 0.9.x finds the renamed `WoWEverywhere.apk`.

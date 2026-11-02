@@ -540,7 +540,12 @@ object LsfgVkManager {
 
     // ---- DLL discovery -----------------------------------------------------
 
-    private fun findSteamDll(): File? = null
+    /** The player's own Lossless.dll, picked in Settings (see `FrameGeneration`). There is no Steam client to find it in. */
+    @Volatile
+    @JvmStatic
+    var userDll: File? = null
+
+    private fun findSteamDll(): File? = userDll?.takeIf { it.isFile }
 
     // ---- Helpers -----------------------------------------------------------
 
