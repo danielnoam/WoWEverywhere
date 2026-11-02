@@ -254,7 +254,7 @@ class GameInstallerTest {
         )
         installer().run(req) {}
         val info = BuildInfo.read(root)!!
-        assertEquals(listOf(WowProduct.FOREVER, WowProduct.BETA), info.products(java.time.LocalDate.of(2026, 12, 1)))
+        assertEquals(listOf(WowProduct.FOREVER, WowProduct.BETA), info.products())
         assertEquals("1.60.1.70450", info.active(WowProduct.BETA)!!["Version"])
     }
 
@@ -278,6 +278,17 @@ class GameInstallerTest {
         val row = BuildInfo.read(root)!!.active(WowProduct.FOREVER)!!
         assertEquals("eu", row["Branch"])
         assertTrue(row["Tags"]!!.contains("EU?"))
+    }
+
+    @Test
+    fun fetchedBytesCountOnlyWhatComesFromTheNetwork() = runBlocking {
+        var first: InstallProgress? = null
+        installer().run(req) { first = it }
+        assertTrue("first install fetched ${first!!.fetchedBytes}", first!!.fetchedBytes >= exe.size)
+        var repair: InstallProgress? = null
+        installer().run(req) { repair = it }
+        assertEquals(0L, repair!!.fetchedBytes)
+        assertEquals(repair!!.totalBytes, repair!!.doneBytes)
     }
 
     @Test
