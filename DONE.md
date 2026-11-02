@@ -5,11 +5,11 @@ What the app does, by area, with the version each feature came in. Versions up t
 ## Running the game
 
 - Runs Blizzard's Windows ARM64 client under Proton 11 ARM64EC, DXVK and Turnip on Adreno 7xx/8xx (base)
-- Snapdragon 8 Elite / Adreno 8xx support and Samsung UBWC hint (base); 8s Gen 4 and 8 Gen 5 too (next release, from upstream 0.6.0)
+- Snapdragon 8 Elite / Adreno 8xx support and Samsung UBWC hint (base); 8s Gen 4 and 8 Gen 5 too (1.1.0, from upstream 0.6.0)
 - Resolution follows the screen size and aspect ratio, keeping the user's game settings (base)
-- Resolution choice in Settings, App: Automatic, 720p, 900p, 1080p or Native, for every profile (1.0.0, from upstream 0.5.0); applied at every start even after WoW saves its own (next release, from upstream 0.6.0)
-- Game keeps running when switching apps, so the server connection survives reading a login code (next release, from upstream 0.6.0)
-- Frame generation (LSFG) with the player's own Lossless.dll, on or off in Settings, App, for every profile (next release, from upstream 0.6.0)
+- Resolution choice in Settings, App: Automatic, 720p, 900p, 1080p or Native, for every profile (1.0.0, from upstream 0.5.0); applied at every start even after WoW saves its own (1.1.0, from upstream 0.6.0)
+- Game keeps running when switching apps, so the server connection survives reading a login code (1.1.0, from upstream 0.6.0)
+- Frame generation (LSFG) with the player's own Lossless.dll, on or off in Settings, App, for every profile (1.1.0, from upstream 0.6.0)
 - Handheld graphics defaults and gamepad mode on in Config.wtf (base)
 - Warning before launching on a device without an Adreno GPU (0.2.0)
 - Stall watchdog writes what blocked the main thread to `crash_logs/` (0.3.0)
@@ -19,10 +19,10 @@ What the app does, by area, with the version each feature came in. Versions up t
 
 - Resumable, verified game installer from Blizzard's CDN to internal storage or SD card (0.2.0)
 - Install runs as a foreground service with pause, resume, cancel and progress notification (0.2.0)
-- Download speed and time left while installing, updating or switching to the launch version (next release, from upstream 0.6.0)
+- Download speed and time left while installing, updating or switching to the launch version (1.1.0, from upstream 0.6.0)
 - Finds and adopts existing installs, including ones copied from a PC (0.2.0)
 - Game updates before Play, using the full installer so data files are patched too (0.2.0)
-- WoW Forever beta and launch versions, with a switch that reuses game data (0.2.0); launch preferred whenever Blizzard lists it, no fixed date (next release, from upstream 0.6.0)
+- WoW Forever beta and launch versions, with a switch that reuses game data (0.2.0); launch preferred whenever Blizzard lists it, no fixed date (1.1.0, from upstream 0.6.0)
 - Install language written to Config.wtf (0.2.0)
 - Battle.net region chosen at install and in Settings, Battle.net, written as the portal (1.0.0, from upstream 0.5.0)
 - New WoW Forever configs answer the Screen Narrator prompt so login.txt auto login goes through (1.0.0, from jaredgei 2.3.0)

@@ -2,7 +2,7 @@
 
 Releases up to 0.4.0 are upstream's (YoruDev-Ryland/WoWForeverywhere), which this fork started from.
 
-## Unreleased
+## 1.1.0
 
 - **The game keeps running when you switch apps.** Before, the game paused when you left the app, which could drop your connection to the server, for example while you read a login code in your email. It now keeps running in the background for every profile. From upstream WoW Foreverywhere.
 - **Resolution always follows Settings.** WoW saved its own 720p pick when it closed, which could stop Settings, App, Resolution from applying. The size you choose now applies at every start. From upstream WoW Foreverywhere.
@@ -10,6 +10,7 @@ Releases up to 0.4.0 are upstream's (YoruDev-Ryland/WoWForeverywhere), which thi
 - **Download speed and time left.** Installing, updating and switching to the launch version now show the speed and, for a fresh download, about how long is left. From upstream WoW Foreverywhere.
 - **WoW Forever uses the launch game now that it's open.** The app waited for November 4; it now prefers the launch game whenever Blizzard lists it. From upstream WoW Foreverywhere.
 - **More Snapdragon chips get the right graphics driver.** The Snapdragon 8s Gen 4 and 8 Gen 5 got the older driver, so the game found no graphics card. From upstream WoW Foreverywhere.
+- **Log files use the new name.** The game log you can save is now WoWEverywhere-wine.log in the client folder, and the shared server log is WoWEverywhere-solo.log. Links in the app point to the renamed project page.
 
 ## 1.0.0
 
