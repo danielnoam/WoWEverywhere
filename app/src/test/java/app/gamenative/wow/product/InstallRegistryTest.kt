@@ -38,6 +38,8 @@ class InstallRegistryTest {
     @Test
     fun migratesUpstreamGamePath() {
         val root = install("wow_classic_beta")
+        // App start (Profiles.load) already ran the migration with no upstream path; start from before it.
+        context.getSharedPreferences("wow_installs", Context.MODE_PRIVATE).edit().clear().commit()
         context.getSharedPreferences("wow_forever", Context.MODE_PRIVATE).edit().putString("game_path", root.absolutePath).commit()
         val active = InstallRegistry(context).active()!!
         assertEquals(root.absolutePath, active.root)
