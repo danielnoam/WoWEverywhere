@@ -36,6 +36,12 @@ class GameConfigTest {
     }
 
     @Test
+    fun newForeverConfigSkipsTheScreenNarratorPrompt() {
+        val lines = buildConfigWtf(null, WowProduct.FOREVER, "1920x1080")!!
+        assertTrue("SET showScreenNarrationDialog \"0\"" in lines)
+    }
+
+    @Test
     fun newConfigUsesInstallLocale() {
         val lines = buildConfigWtf(null, WowProduct.FOREVER, "1920x1080", "deDE")!!
         assertTrue("SET textLocale \"deDE\"" in lines)
@@ -62,6 +68,29 @@ class GameConfigTest {
     }
 
     @Test
+    fun chosenRegionSetsThePortal() {
+        val root = java.nio.file.Files.createTempDirectory("wow").toFile()
+        java.io.File(root, ".build.info").writeText("Branch!STRING:0|Active!DEC:1|Product!STRING:0\nus|1|wowf\nus|1|wow_classic_beta\n")
+        try {
+            app.gamenative.wow.product.GameRegions.chosen = app.gamenative.wow.product.GameRegion.EU
+            assertEquals("EU", installPortal(root, WowProduct.FOREVER))
+            assertEquals("test", installPortal(root, WowProduct.BETA))
+        } finally {
+            app.gamenative.wow.product.GameRegions.chosen = null
+        }
+    }
+
+    @Test
+    fun forcedPortalReplacesAnExistingOne() {
+        val existing = listOf("SET gxApi \"D3D11\"", "SET portal \"US\"", "SET agentUID \"wowf\"", "SET gxFullscreenResolution \"1920x1080\"", "SET gxWindowedResolution \"1920x1080\"")
+        assertNull(buildConfigWtf(existing, WowProduct.FOREVER, "1920x1080", portal = "EU"))
+        val forced = buildConfigWtf(existing, WowProduct.FOREVER, "1920x1080", portal = "EU", forcePortal = true)!!
+        assertTrue("SET portal \"EU\"" in forced)
+        assertTrue(forced.none { it == "SET portal \"US\"" })
+        assertNull(buildConfigWtf(forced, WowProduct.FOREVER, "1920x1080", portal = "EU", forcePortal = true))
+    }
+
+    @Test
     fun newBetaConfigUsesTestPortal() {
         val lines = buildConfigWtf(null, WowProduct.BETA, "1280x720")!!
         assertTrue("SET portal \"test\"" in lines)
@@ -84,7 +113,7 @@ class GameConfigTest {
     }
 
     @Test
-    fun staleResolutionIsReset() {
+    fun resolutionAlwaysMatchesTheContainer() {
         val existing = listOf(
             "SET portal \"US\"",
             "SET gxApi \"D3D11\"",
@@ -93,7 +122,8 @@ class GameConfigTest {
         )
         val lines = buildConfigWtf(existing, WowProduct.FOREVER, "1920x1080")!!
         assertTrue("SET gxFullscreenResolution \"1920x1080\"" in lines)
-        assertTrue("SET gxWindowedResolution \"1280x720\"" in lines)
+        assertTrue("SET gxWindowedResolution \"1920x1080\"" in lines)
+        assertTrue(lines.none { it.contains("1280x720") || it.contains("2560x1440") })
     }
 
     @Test

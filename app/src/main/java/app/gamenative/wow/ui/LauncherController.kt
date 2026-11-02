@@ -21,6 +21,7 @@ import app.gamenative.ui.screen.wow.installLocale
 import app.gamenative.wow.addons.CurseForgeAccess
 import app.gamenative.wow.install.GameInstaller
 import app.gamenative.wow.install.InstallController
+import app.gamenative.wow.install.DownloadSpeed
 import app.gamenative.wow.install.InstallProgress
 import app.gamenative.wow.install.InstallRequest
 import app.gamenative.wow.install.InstallUiState
@@ -31,6 +32,7 @@ import app.gamenative.utils.AppUpdater
 import app.gamenative.utils.StorageUtils
 import app.gamenative.wow.legacy.ClientBuild
 import app.gamenative.wow.legacy.LegacyClient
+import app.gamenative.wow.legacy.LegacyGame
 import app.gamenative.wow.legacy.LegacyServer
 import app.gamenative.wow.legacy.LegacyServers
 import app.gamenative.wow.legacy.LegacySettings
@@ -46,6 +48,7 @@ import app.gamenative.wow.profile.Profile
 import app.gamenative.wow.ui.addons.AddonProfile
 import app.gamenative.wow.profile.ProfileAddons
 import app.gamenative.wow.profile.Profiles
+import app.gamenative.wow.solo.SoloServer
 import java.io.File
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -54,6 +57,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import timber.log.Timber
 
@@ -156,6 +160,7 @@ class LauncherController(
 
     /** The private server version runs the player's own client from [legacy]: no Blizzard install, updates or login. */
     val isPrivate get() = version.isPrivateServer
+    val legacyGame get() = LegacyGame.of(version)
     val filesMissing get() = if (isPrivate) legacy.root.isBlank() else !(files.dataExists && files.buildInfoExists)
     val canPlay get() = !isLaunching && !isUpdating && !filesMissing && if (isPrivate) legacy.realmlist.isNotBlank() else !files.isWrongGame
     val busy get() = isLaunching || isUpdating
@@ -412,6 +417,13 @@ class LauncherController(
         selectServer(server.id)
     }
 
+    /** Adds the player's own server to this profile's list, or updates it, and selects it. */
+    fun addSoloServer(server: LegacyServer) {
+        servers = if (servers.any { it.id == server.id }) servers.map { if (it.id == server.id) server else it } else servers + server
+        LegacyServers.save(context, servers)
+        selectServer(server.id)
+    }
+
     fun removeServer(id: String) {
         if (servers.size < 2) return
         LegacyServers.vault(context, id).clear()
@@ -446,10 +458,13 @@ class LauncherController(
             listOf(wineLog(), sharedLegacyLog(), File(settings.root, LegacyClient.LOG)).forEach { it.delete() }
         }
         val current = profile
+        val solo = selectedServer.solo == LegacyServer.SOLO_DEVICE
+        val game = legacyGame
         launch { screenSize, onStatus ->
+            if (solo) runBlocking { SoloServer.start(context, onStatus) }
             if (current != null && settings.root.isNotBlank()) runCatching { ProfileAddons.applyMods(context, current, File(settings.root)) }.onFailure { Timber.w(it, "Applying client patches") }
             applyProfileAddons(File(settings.root, "WTF"))
-            prepareLegacyLaunch(context, settings, gpu, screenSize, onStatus)
+            prepareLegacyLaunch(context, settings, game, gpu, screenSize, onStatus)
         }
     }
 
@@ -526,7 +541,7 @@ class LauncherController(
         val root = legacy.root
         scope.launch {
             legacyBuild = withContext(Dispatchers.IO) {
-                root.takeIf { it.isNotBlank() }?.let { LegacyClient.detectBuild(File(it, LegacyClient.EXE)) }
+                root.takeIf { it.isNotBlank() }?.let { LegacyClient.detectBuild(LegacyClient.exe(File(it))) }
             }
         }
     }
@@ -582,11 +597,13 @@ class LauncherController(
                 // The full installer, not upstream's binaries-only updater: patches also change the
                 // client's .dat/.pak/.bin files (see the installer spike notes).
                 val root = File(gamePath)
+                val speed = DownloadSpeed()
                 GameInstaller().run(InstallRequest(root, product, installLocale(root, product))) { p ->
+                    val summary = downloadSummary(p, speed)
                     scope.launch(Dispatchers.Main) {
                         updateStatusText = when (p.phase) {
                             InstallProgress.Phase.RESOLVING -> "Reading build ${target.remoteVersion}..."
-                            InstallProgress.Phase.DOWNLOADING -> p.fraction?.let { "Updating game files ${(it * 100).toInt()}%" } ?: "Updating game files..."
+                            InstallProgress.Phase.DOWNLOADING -> p.fraction?.let { "Updating game files ${(it * 100).toInt()}%$summary" } ?: "Updating game files..."
                             else -> "Finishing update..."
                         }
                     }
@@ -617,9 +634,11 @@ class LauncherController(
                     ProductConverter.applyLocal(root, WowProduct.BETA, WowProduct.FOREVER)
                     // The installer always asks the patch service for the launch build (and its KeyRing), so
                     // offline it fails cleanly instead of reusing the beta build keys cloned into the new row.
+                    val speed = DownloadSpeed()
                     GameInstaller().run(InstallRequest(root, WowProduct.FOREVER, installLocale(root, WowProduct.BETA))) { p ->
+                        val summary = downloadSummary(p, speed)
                         scope.launch(Dispatchers.Main) {
-                            updateStatusText = p.fraction?.let { "Downloading the launch version ${(it * 100).toInt()}%" } ?: "Preparing the launch version..."
+                            updateStatusText = p.fraction?.let { "Downloading the launch version ${(it * 100).toInt()}%$summary" } ?: "Preparing the launch version..."
                         }
                     }
                 }
@@ -750,4 +769,11 @@ class LauncherController(
     private companion object {
         const val READY = "Ready to launch"
     }
+}
+
+/** "  ·  1.2 GB of 3.0 GB  ·  12.0 MB/s  ·  about 3 min left" for a status line, measured on what came from the network. */
+private fun downloadSummary(p: InstallProgress, speed: DownloadSpeed): String {
+    if (p.totalBytes <= 0) return ""
+    val bytesPerSecond = speed.add(p.fetchedBytes, System.nanoTime() / 1_000_000)
+    return "  ·  " + DownloadSpeed.summary(p, bytesPerSecond)
 }

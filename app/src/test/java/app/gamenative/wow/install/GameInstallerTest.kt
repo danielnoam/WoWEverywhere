@@ -254,7 +254,7 @@ class GameInstallerTest {
         )
         installer().run(req) {}
         val info = BuildInfo.read(root)!!
-        assertEquals(listOf(WowProduct.FOREVER, WowProduct.BETA), info.products(java.time.LocalDate.of(2026, 12, 1)))
+        assertEquals(listOf(WowProduct.FOREVER, WowProduct.BETA), info.products())
         assertEquals("1.60.1.70450", info.active(WowProduct.BETA)!!["Version"])
     }
 
@@ -270,6 +270,25 @@ class GameInstallerTest {
         assertEquals("wow_classic_era", info.active(WowProduct.CLASSIC_ERA)!!["Product"])
         assertEquals("Product Flavor!STRING:0\nwow_classic_era\n", File(root, "_classic_era_/.flavor.info").readText())
         assertEquals("Product Flavor!STRING:0\nwowf\n", File(root, "_forever_/.flavor.info").readText())
+    }
+
+    @Test
+    fun freshInstallRecordsTheChosenRegion() = runBlocking {
+        installer().run(InstallRequest(root, WowProduct.FOREVER, region = "eu")) {}
+        val row = BuildInfo.read(root)!!.active(WowProduct.FOREVER)!!
+        assertEquals("eu", row["Branch"])
+        assertTrue(row["Tags"]!!.contains("EU?"))
+    }
+
+    @Test
+    fun fetchedBytesCountOnlyWhatComesFromTheNetwork() = runBlocking {
+        var first: InstallProgress? = null
+        installer().run(req) { first = it }
+        assertTrue("first install fetched ${first!!.fetchedBytes}", first!!.fetchedBytes >= exe.size)
+        var repair: InstallProgress? = null
+        installer().run(req) { repair = it }
+        assertEquals(0L, repair!!.fetchedBytes)
+        assertEquals(repair!!.totalBytes, repair!!.doneBytes)
     }
 
     @Test

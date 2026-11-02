@@ -2,18 +2,23 @@
 
 Only work that's left. Shipped items move to DONE.md, rejected ones to DROPPED.md.
 
-## Fork housekeeping
+## Next: older private server versions, the rest
 
-1. **Addon catalog link.** The GitHub addon catalog (`GitHubProvider.CATALOG_URL`) still points at upstream. It can stay on upstream's nightly build (no cost, but it's their branch) or the fork's `addon-catalog` workflow can publish its own.
+1.12.1, 2.4.3, 4.3.4 and 5.4.8 basic play is built (see DONE.md). What they still lack:
 
-## Client add-ons (3.3.5a)
+- **Controller Menus on 1.12.1 and 2.4.3.** Find which bytes of the 5875 and 8606 exes stop the "login interface files are corrupt" check, on Daniel's PC like the 3.3.5a ones, then port the login, realm and character Lua to each client's GlueXML. Add each to `LegacyGame.hasEverywherePatches` and give `WowExePatch` a spot list per build.
+- **Grow the 1.12.1 and 2.4.3 addon catalogs.** Read the first workflow run's log to see which starter repos were kept, then add more from the community lists, the way `wotlk335.json` was filled.
+- **Addon catalogs for 4.3.4 and 5.4.8.** Same as above, once Daniel says either runs well enough to play.
+- **Find the fastest settings for 4.3.4 and 5.4.8.** Measure fps against 3.3.5a on the same spot, then decide whether their own lighter-graphics values or Box64 flags are worth it.
 
-1. **The HD pack's rules.** The WotLK HD pack's menu keeps some patches together (u needs a, n needs m) and apart (j and k). The Client tab doesn't yet; its config file has the rules to read.
+## Parked: WoW Forever Launch or Beta setting
 
-## Later
+- **Choose WoW Forever's launch game or the beta.** Upstream has this as an app-wide setting (5095649) with a prompt on start for beta installs. Here it would need to be per profile. Only worth it if Blizzard opens a new beta or test phase.
 
-- **In-game extras from the HD pack as addons.** Its patch 5 and 9 carry later-expansion raid frames, loss of control alerts and a level up banner. They need no client patch, so they'd fit the 3.3.5a addon catalog as backports, if good 3.3.5a versions exist. Daniel: keep for later. (2026-10-27)
+## Later: 6.x and newer private servers
 
-## Proposed by Claude, not agreed yet
+Daniel asked for this on 2026-10-29, gated on 5.4.8 being playable on the Odin. If 5.4.8 isn't, it isn't worth building.
 
-- **Keyboard on the 3.3.5a login screen.** Addons can't run on the login, code and character screens, so typing there means Back, then Keyboard. Either open the keyboard by itself when the client starts, or map a controller button to it for the private server container.
+- **Bundle FEX's ARM64EC library (`libarm64ecfex.dll`) so Proton can run x64 code.** Private server clients from 6.x on are x64 only. Blizzard's ARM64 build can't be used, because the servers' client patches (Arctium) only fit the old x64 builds. Fetch FEX from a pinned release in CI with a sha256, like wowbox64, and turn it on only for these profiles. Check that it doesn't change how the native ARM64 clients start.
+- **Run the client patcher under emulation.** Arctium's launcher is an x64 exe that patches the client in memory at start. Start it as the profile's exe instead of Wow.exe, with the realm address it needs. Try it with one well-known build first (7.3.5 or 3.4.x private servers, whichever Daniel plays).
+- **Measure before going further.** Compare frame rate with 5.4.8 on the same spot. x64 emulation through FEX is likely slower than wowbox64 on 32-bit code (a guess), on a client that's heavier again.

@@ -13,7 +13,7 @@ import app.gamenative.wow.addons.AddonManager
 import app.gamenative.wow.addons.CurseForgeSetup
 import app.gamenative.wow.addons.addonTarget
 import app.gamenative.wow.addons.provider.GitHubProvider
-import app.gamenative.wow.legacy.LegacyClient
+import app.gamenative.wow.legacy.LegacyGame
 import app.gamenative.wow.addons.provider.WagoProvider
 import app.gamenative.wow.addons.provider.WowInterfaceProvider
 import app.gamenative.wow.product.GameVersion
@@ -44,8 +44,9 @@ class AddonsController(
     /** CurseForge applies to this version but has no key or proxy set in Settings. */
     val curseForgeOff = !version.isPrivateServer && !curseForge.enabled
 
-    /** 3.3.5a only: add-ons that change the client itself. [addonsDir] is `<client>/Interface/AddOns`. */
-    val clientMods = addonsDir.parentFile?.parentFile?.takeIf { version == GameVersion.PRIVATE_335 }?.let { ClientModsController(it, scope, profile::modsChanged) }
+    /** Private servers only: add-ons that change the client itself. [addonsDir] is `<client>/Interface/AddOns`. */
+    val clientMods = addonsDir.parentFile?.parentFile?.takeIf { version.isPrivateServer }
+        ?.let { ClientModsController(it, scope, profile::modsChanged, LegacyGame.of(version)) }
 
     private val target = version.addonTarget()
     private val manager = AddonManager(
@@ -55,7 +56,11 @@ class AddonsController(
             curseForge.provider(target).takeUnless { version.isPrivateServer },
             WagoProvider(BuildConfig.WAGO_API_KEY, target = target).takeUnless { version.isPrivateServer },
             WowInterfaceProvider(target = target),
-            GitHubProvider(target = target, catalogUrl = if (version.isPrivateServer) LegacyClient.ADDON_CATALOG_URL else GitHubProvider.CATALOG_URL),
+            if (version.isPrivateServer) {
+                GitHubProvider(target = target, catalogUrl = LegacyGame.of(version).catalogUrl)
+            } else {
+                GitHubProvider(target = target, fallbackCatalogUrl = GitHubProvider.UPSTREAM_CATALOG_URL)
+            },
         ),
         http = Net.http,
         target = target,

@@ -6,12 +6,15 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
@@ -31,15 +34,19 @@ import app.gamenative.ui.screen.wow.GamePath
 import app.gamenative.ui.screen.wow.WowClientDownloader
 import app.gamenative.utils.StorageUtils
 import app.gamenative.wow.AppName
+import app.gamenative.wow.install.DownloadSpeed
 import app.gamenative.wow.install.InstallController
 import app.gamenative.wow.install.InstallRequest
 import app.gamenative.wow.install.InstallUiState
 import app.gamenative.wow.product.GameInstall
+import app.gamenative.wow.product.GameRegion
+import app.gamenative.wow.product.GameRegions
 import app.gamenative.wow.product.GameVersion
 import app.gamenative.wow.product.InstallScanner
 import app.gamenative.wow.product.WowProduct
 import app.gamenative.wow.ui.components.FwButton
 import app.gamenative.wow.ui.components.FwButtonKind
+import app.gamenative.wow.ui.components.FwChip
 import app.gamenative.wow.ui.components.FwProgress
 import app.gamenative.wow.ui.components.FwRow
 import app.gamenative.wow.ui.theme.Fw
@@ -65,7 +72,10 @@ fun FirstRunScreen(
     var installedFresh by remember { mutableStateOf(false) }
 
     Column(Modifier.fillMaxSize().background(Fw.Ground)) {
-        Row(Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 16.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        Row(
+            Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 24.dp, vertical = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
             Step.entries.forEach {
                 FwStepPill(it.label, it == step)
             }
@@ -102,6 +112,7 @@ private fun FwStepPill(label: String, current: Boolean) {
     )
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun Welcome(version: GameVersion, onNext: () -> Unit, onOpenSettings: () -> Unit) {
     val context = LocalContext.current
@@ -123,7 +134,8 @@ private fun Welcome(version: GameVersion, onNext: () -> Unit, onOpenSettings: ()
     if (check.any { !it.second }) {
         Text("The game may not run well on this device. You can still continue.", style = Fw.Secondary)
     }
-    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+    // Side by side when they fit, stacked on a narrow (portrait) screen.
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         FwButton("Get started", onNext)
         FwButton("Playing another version of WoW?", onOpenSettings, kind = FwButtonKind.Ghost)
     }
@@ -206,6 +218,7 @@ fun InstallStep(launcher: LauncherController, onDone: () -> Unit, onBack: () -> 
     val roots = remember { InstallScanner.storageRoots(context) }
     var rootIndex by remember { mutableStateOf(if (roots.size > 1) 1 else 0) }
     var product by remember { mutableStateOf<WowProduct?>(null) }
+    var region by remember { mutableStateOf(GameRegions.effective(null)) }
     val locale = remember { deviceLocale() }
     // Android 13+ hides the progress notification unless the app may post notifications. The download
     // starts either way; this only asks once per screen visit.
@@ -233,8 +246,10 @@ fun InstallStep(launcher: LauncherController, onDone: () -> Unit, onBack: () -> 
         is InstallUiState.Running -> {
             Text("Downloading from Blizzard's servers to ${s.request.root}. You can leave the app: the download keeps going and shows progress in your notifications.", style = Fw.Text)
             val p = s.progress
+            val meter = remember(s.request) { DownloadSpeed() }
+            val bytesPerSecond = remember(p) { meter.add(p.fetchedBytes, System.nanoTime() / 1_000_000) }
             Text(
-                if (p.totalBytes > 0) p.sizeText else "Reading the build manifest…",
+                if (p.totalBytes > 0) DownloadSpeed.summary(p, bytesPerSecond) else "Reading the build manifest…",
                 style = Fw.Data.copy(color = Fw.Bone),
             )
             FwProgress(p.fraction)
@@ -281,14 +296,21 @@ fun InstallStep(launcher: LauncherController, onDone: () -> Unit, onBack: () -> 
                 }
             }
             Text("Version: ${product?.displayName ?: "checking…"}  ·  Language: $locale", style = Fw.Data)
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Region", style = Fw.Text)
+                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    GameRegion.entries.forEach { r -> FwChip("${r.label} (${r.portal})", r == region, { region = r }) }
+                }
+            }
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 FwButton(
                     "Download and install",
                     {
                         val p = product ?: return@FwButton
                         val root = File(roots[rootIndex], launcher.version.defaultFolder)
+                        GameRegions.save(context, region)
                         launcher.startedInstall(root.absolutePath)
-                        start(InstallRequest(root, p, locale))
+                        start(InstallRequest(root, p, locale, region = region.code))
                     },
                     enabled = product != null && roots.isNotEmpty(),
                 )

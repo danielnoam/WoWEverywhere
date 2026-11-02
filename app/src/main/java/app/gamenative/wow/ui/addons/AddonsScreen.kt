@@ -127,7 +127,7 @@ fun AddonsScreen(c: AddonsController, onBack: () -> Unit) {
             if (!wideBar) item { FwButton("From link", { showUrlDialog = true }, kind = FwButtonKind.Ghost) }
         }
         ConsolePortCard(c)
-        AndroWherePatchesCard(c)
+        EverywherePatchesCard(c)
         if (c.curseForgeOff && c.mode == AddonsController.Mode.BROWSE && (c.source == null || c.source == "curseforge")) {
             Text(
                 "CurseForge is off. To search it, add your own CurseForge API key or proxy in Settings → CurseForge.",
@@ -432,7 +432,12 @@ internal fun addonsControllerFor(
 ): AddonsController? = product?.let { AddonsController(File(root), it, scope, curseForge, profile) }
 
 /** The private server client's own `Interface/AddOns`, once a client folder is chosen. */
-internal fun legacyAddonsControllerFor(root: String, scope: kotlinx.coroutines.CoroutineScope, profile: AddonProfile = AddonProfile.ALL): AddonsController? =
+internal fun legacyAddonsControllerFor(
+    root: String,
+    version: app.gamenative.wow.product.GameVersion,
+    scope: kotlinx.coroutines.CoroutineScope,
+    profile: AddonProfile = AddonProfile.ALL,
+): AddonsController? =
     root.takeIf { it.isNotBlank() }?.let {
-        AddonsController(File(it, "Interface/AddOns"), app.gamenative.wow.product.GameVersion.PRIVATE_335, scope, profile = profile)
+        AddonsController(File(it, "Interface/AddOns"), version, scope, profile = profile)
     }

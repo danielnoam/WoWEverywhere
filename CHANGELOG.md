@@ -2,9 +2,62 @@
 
 Releases up to 0.4.0 are upstream's (YoruDev-Ryland/WoWForeverywhere), which this fork started from.
 
-## 0.8.4
+## Unreleased
+
+- **The game keeps running when you switch apps.** Before, the game paused when you left the app, which could drop your connection to the server, for example while you read a login code in your email. It now keeps running in the background for every profile. From upstream WoW Foreverywhere.
+- **Resolution always follows Settings.** WoW saved its own 720p pick when it closed, which could stop Settings, App, Resolution from applying. The size you choose now applies at every start. From upstream WoW Foreverywhere.
+- **Frame generation with your own Lossless Scaling.** Settings, App can take Lossless.dll from your own copy of Lossless Scaling on Steam. With it on, the in-game menu has an LSFG tab that adds generated frames for a smoother picture, at the cost of a little input delay. It works for every profile, private servers included. The app doesn't include the file. From upstream WoW Foreverywhere.
+- **Download speed and time left.** Installing, updating and switching to the launch version now show the speed and, for a fresh download, about how long is left. From upstream WoW Foreverywhere.
+- **WoW Forever uses the launch game now that it's open.** The app waited for November 4; it now prefers the launch game whenever Blizzard lists it. From upstream WoW Foreverywhere.
+- **More Snapdragon chips get the right graphics driver.** The Snapdragon 8s Gen 4 and 8 Gen 5 got the older driver, so the game found no graphics card. From upstream WoW Foreverywhere.
+
+## 1.0.0
+
+- **New name: WoWEverywhere.** WoW AndroWhere is now called WoWEverywhere, in the app, the launcher and the download. It updates in place and keeps your profiles, servers, saved logins, game files and addons.
+- **Choose the game's resolution.** Settings, App has Automatic, 720p, 900p, 1080p and Native. It applies to every profile, private servers included, from the next time you start the game. Lower is easier on the device, higher looks sharper. From upstream WoW Foreverywhere.
+- **Choose your Battle.net region.** WoW Forever and the official versions no longer always use the Americas: pick Americas, Europe, Korea or Taiwan when you install, or in Settings, Battle.net. From upstream WoW Foreverywhere.
+- **WoW Forever signs in on a first start.** A new game folder no longer stops at the Screen Narrator question, which kept the saved login from going in, and the login now waits up to ten minutes for a slow first start instead of three. From the original wow-forever-android.
+- **Simpler Server screen.** Pressing A on a server, or tapping it, now just selects it. Y, or the pencil on the right, opens it to edit, and Remove server is inside with a confirmation. Add server asks what you're adding: an online server, your own server on this device, or your own server on a PC, so the separate Your own server section is gone. Your own server on this device shows its setup progress there, and Y on "Solo, this device" opens its Start, Stop, Continue setup and Share log page.
+- **One Private server choice for new profiles.** New profile now lists a single Private server option instead of one per version. Choose your client folder and the app reads the version from Wow.exe (1.12.1, 2.4.3, 3.3.5a, 4.3.4 or 5.4.8) and sets the profile up for it. If it can't read the version, it asks you which one it is. Existing profiles are unchanged.
+
+## 0.9.3
+
+- **Your own server: the login server starts.** In 0.9.2 it stopped right away because it couldn't look up the address 127.0.0.1 on Android. The server is rebuilt with that fixed, and with an encryption module the world server needs when you log in. After updating, press Continue setup on On this device: it downloads the new server (about 18 MB) and keeps your account and characters.
+
+## 0.9.2
+
+- **Your own server: account creation works.** Setup in 0.9.1 stopped at "Creating your account" with a database error (No database selected). Press Continue setup after updating and it picks up from there.
+
+## 0.9.1
+
+- **Your own server: setup no longer crashes at "Creating your account".** The app closed when it stopped the database after making your account. Setup now finishes, and the server also stops cleanly when the game closes. On this device has a new **Share log** button that sends the server's last messages, so problems can be reported.
+- **Settings list works by touch.** Tapping App, Battle.net, Addon sources or About on the left of Settings now opens that section. Before, only the controller could move through the list.
+
+## 0.9.0
+
+- **Vanilla 1.12.1 and Burning Crusade 2.4.3 private servers, experimental.** Two new game versions when you make a profile, next to 3.3.5a: Private server (1.12.1), which includes Turtle WoW, and Private server (2.4.3). Choose your own client folder and add your servers as you do for 3.3.5a. The app sets the realm, the resolution and the renderer, and warns you if the folder holds a different version. Addons has a small starter catalog for each (pfUI, pfQuest, ShaguDPS and more), and the Client tab has the switches for your client's patch files. Controller Menus and the Level Up Banner are 3.3.5a only for now, so you type your account and password in the game. The controller layout from 3.3.5a is always on: the sticks move you and aim the mouse, the stick buttons click, and the other buttons press F1 to F12, which you can bind in the game's Key Bindings.
+- **Cataclysm 4.3.4 and Mists of Pandaria 5.4.8 private servers, experimental.** Two more versions in New profile, set up the same way. The app runs their 32-bit Wow.exe, since only 32-bit games can run through the emulator. These clients are much heavier than 3.3.5a, so expect a lower frame rate. Turn on Faster emulation and Use lighter graphics in Client. There is no addon catalog for them yet, but WoWInterface and GitHub links work.
+- **Your own server (3.3.5a), experimental.** The Server screen has a new section, Your own server. **On this device** sets up a private server that runs on your handheld, just for you: no other players and no internet once it is set up. Setup downloads about 0.7 GB, or 1.4 GB with mob pathing (on by default; without it monsters sometimes walk through walls), and uses 2.6 to 4.8 GB. It keeps going if you leave the app. The server then shows up in your server list as "Solo, this device". Press Play and the app starts it, which takes about a minute, logs you in with an account it made for you, and stops it when the game closes. GM commands such as .tele and .levelup are on for your account and can be turned off. **On a PC** connects to a server you run on your computer, such as Dad's MMO Lab's offline server: enter the PC's address, check the connection, and add it to your servers.
+
+## 0.8.8
+
+- **Keyboard on a button (3.3.5a).** With Controller Menus installed, hold Select for half a second to open the Android keyboard, and again to close it. It works on the login screen, the email code box, character names and in game, so you no longer need Back, then Keyboard. A quick press of Select still reaches the game as before. The login and character creation hints show it.
+
+## 0.8.7
+
+- **Raid frames and loss of control alerts for 3.3.5a.** Two extras from the WotLK HD pack are now in the 3.3.5a addon list for any client: Compact Raid Frames, the party and raid frames from later expansions, and Loss of Control Alerts, which shows what is stopping you and for how long when you are stunned, feared or silenced. If your HD pack already has its patch 5 on, you have these already.
+- **Level Up Banner (3.3.5a).** A new AndroWhere add-on in **Addons** → **Client**: when you level up, "Level N" shows across the top of the screen like in later expansions, with a line when you get a talent point. Type /levelbanner in game to see it without levelling.
+
+## 0.8.6
+
+- **HD pack patches explained.** With the WotLK HD client, each patch in **Addons** → **Client** now says what it changes, and the switches follow the pack's own rules. Turning on undead without bones also turns on HD characters, dungeon minimaps turn on dungeon maps, and turning off the one a patch needs turns that patch off too. Only one of the two character creation styles can be on at a time.
+
+## 0.8.5
 
 - **Controller Menus (3.3.5a), formerly AndroWhere Login.** The add-on that lets the controller work on the login, realm and character screens has a new name and no longer needs ConsolePortLK. With only Controller Menus installed, the app now turns on its controller layout too. Without ConsolePortLK, that layout stays on in the world: the sticks move you and aim the mouse, and the face buttons press F1 to F4. With ConsolePortLK installed nothing changes.
+- **Our own addon catalog.** The GitHub addon list now comes from WoW AndroWhere's own nightly build instead of upstream's. It still lists every addon upstream does, and if ours can't be reached the app falls back to upstream's.
+
+## 0.8.4
 
 - **Faster emulation for private servers.** **Client** → Graphics has a new **Faster emulation** switch. It turns off some of Box64's safety checks so the 3.3.5a client runs faster. It's off by default; if an area or addon crashes or looks wrong with it on, turn it off.
 - **Newer Box64 for private servers.** The 3.3.5a client now runs on Box64 0.4.4 (was 0.4.2), which starts and runs games a bit faster.

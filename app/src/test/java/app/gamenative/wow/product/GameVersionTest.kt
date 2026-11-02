@@ -1,6 +1,5 @@
 package app.gamenative.wow.product
 
-import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -29,8 +28,7 @@ class GameVersionTest {
     @Test
     fun foreverOrderingUnchanged() {
         val both = info("wowf", "wow_classic_beta")
-        assertEquals(listOf(WowProduct.BETA, WowProduct.FOREVER), both.products(LocalDate.of(2026, 11, 3), GameVersion.FOREVER))
-        assertEquals(listOf(WowProduct.FOREVER, WowProduct.BETA), both.products(LocalDate.of(2026, 11, 4), GameVersion.FOREVER))
+        assertEquals(listOf(WowProduct.FOREVER, WowProduct.BETA), both.products(GameVersion.FOREVER))
     }
 
     @Test

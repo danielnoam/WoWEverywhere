@@ -16,12 +16,18 @@ data class GlueServer(val name: String, val realmlist: String, val account: Stri
 data class LoginData(val servers: List<GlueServer>, val selected: Int, val passwords: List<String?>?, val autoLogin: Boolean)
 
 /** A patch we make for the 3.3.5a client, installed and removed from the Addons screen's Client tab. */
-enum class AndroWherePatch(val title: String, val summary: String) {
+enum class EverywherePatch(val title: String, val summary: String) {
     LOGIN(
         "Controller Menus",
         "Controller support on the login, realm, character select and character creation screens, with button hints at the top. " +
-            "A logs you in when Fill in password is on in Server. Works with or without ConsolePortLK. " +
+            "A logs you in when Fill in password is on in Server. Hold Select to open or close the keyboard, in game too. " +
+            "Works with or without ConsolePortLK. " +
             "Installing it changes 5 bytes of Wow.exe so the client accepts it, and keeps the original to put back when you remove it.",
+    ),
+    LEVEL_UP(
+        "Level Up Banner",
+        "Shows the level you reached across the top of the screen, like later expansions, with a line when you get a talent point. " +
+            "A plain add-on, so it leaves the client alone. Type /levelbanner in game to see it.",
     ),
 }
 
@@ -37,7 +43,7 @@ object ClientMods {
     private const val PASSWORD_FILE = "AndroWhereLoginData.lua"
     private const val SERVERS_FILE = "AndroWhereServers.lua"
     private const val GLUE_DIR = "Interface\\GlueXML\\"
-    private const val LOGIN_RESOURCE = "/androwhere/glue/$LOGIN_FILE"
+    private const val LOGIN_RESOURCE = "/everywhere/glue/$LOGIN_FILE"
     private const val GLUE_TOC = "Interface\\GlueXML\\GlueXML.toc"
     private const val TOC_LAST = "## This Always Runs Last"
 
@@ -57,16 +63,18 @@ object ClientMods {
         return File(root, "Data/$locale/patch-$locale-$OUR_SUFFIX.MPQ")
     }
 
-    private fun exe(root: File) = File(root, LegacyClient.EXE)
+    private fun exe(root: File) = LegacyClient.exe(root)
 
     fun loginEnabled(root: File) = ourArchive(root).isFile
 
-    fun installed(root: File, patch: AndroWherePatch) = when (patch) {
-        AndroWherePatch.LOGIN -> loginEnabled(root)
+    fun installed(root: File, patch: EverywherePatch) = when (patch) {
+        EverywherePatch.LOGIN -> loginEnabled(root)
+        EverywherePatch.LEVEL_UP -> LevelUpBanner.installed(root)
     }
 
-    fun setInstalled(root: File, patch: AndroWherePatch, installed: Boolean) = when (patch) {
-        AndroWherePatch.LOGIN -> if (installed) enableLogin(root) else disableLogin(root)
+    fun setInstalled(root: File, patch: EverywherePatch, installed: Boolean) = when (patch) {
+        EverywherePatch.LOGIN -> if (installed) enableLogin(root) else disableLogin(root)
+        EverywherePatch.LEVEL_UP -> if (installed) LevelUpBanner.install(root) else LevelUpBanner.remove(root)
     }
 
     /** Writes our login add-on and patches the exe so the client accepts it. */

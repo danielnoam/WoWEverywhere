@@ -48,12 +48,18 @@ import app.gamenative.utils.AppUpdater
 import app.gamenative.utils.StorageUtils
 import app.gamenative.utils.renderReleaseNotes
 import app.gamenative.wow.product.WowProduct
+import app.gamenative.wow.product.GameRegions
+import app.gamenative.wow.product.RenderSize
+import app.gamenative.wow.product.RenderSizes
 import app.gamenative.wow.product.GameVersion
 import app.gamenative.wow.product.GameVersions
 import app.gamenative.wow.product.detectProduct
 import app.gamenative.wow.legacy.ConsolePortLK
 import app.gamenative.wow.legacy.LegacyClient
+import app.gamenative.wow.legacy.LegacyGame
 import app.gamenative.wow.legacy.LegacySettings
+import app.gamenative.wow.legacy.PadKeyboardButton
+import app.gamenative.wow.legacy.mods.ClientMods
 import com.winlator.box86_64.Box86_64Preset
 import com.winlator.container.Container
 import com.winlator.container.ContainerManager
@@ -896,29 +902,47 @@ internal data class GpuProfile(val driver: String, val tuDebug: String, val scre
             GpuProfile(DEFAULT_DRIVER, "noconform", "1920x1080", "Adreno 740", "Snapdragon 8 Series / Adreno 740")
         }
 
-        private fun isAdreno8xxDevice(context: Context): Boolean {
-            if (GPUInformation.isAdreno8Elite(context)) return true
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                val soc = Build.SOC_MODEL
-                if (soc.contains("SM8750", ignoreCase = true) || soc.contains("SM8850", ignoreCase = true)) return true
-            }
-            return Build.HARDWARE.contains("sun", ignoreCase = true)
-        }
+        private fun isAdreno8xxDevice(context: Context): Boolean = isAdreno8xx(
+            runCatching { GPUInformation.getRenderer(context) }.getOrNull().orEmpty(),
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) Build.SOC_MODEL else "",
+            Build.HARDWARE,
+        )
     }
 }
+
+/**
+ * Any Adreno 8xx GPU: the renderer says "Adreno (TM) 8xx", or the chip is one of the Snapdragon 8xx-GPU
+ * parts (SM8735 8s Gen 4, SM8750 8 Elite, SM8845 8 Gen 5, SM8850 8 Elite Gen 5; "sun" is the 8 Elite's
+ * board name). The 7xx driver can't run these, so WoW would see no usable graphics card (from upstream).
+ */
+internal fun isAdreno8xx(renderer: String, socModel: String, hardware: String): Boolean =
+    Regex("""adreno\D*8\d\d""", RegexOption.IGNORE_CASE).containsMatchIn(renderer) ||
+        listOf("SM8735", "SM8750", "SM8845", "SM8850").any { socModel.contains(it, ignoreCase = true) } ||
+        hardware.contains("sun", ignoreCase = true)
 
 /**
  * Reshapes the GPU's 16:9 render budget to the current window's aspect ratio so the game fills
  * non-16:9 screens (e.g. a foldable's near-square inner display) instead of being letterboxed.
  * The pixel count stays the same as [baseSize], so GPU cost matches the 16:9 default.
  */
-internal fun fitScreenSizeToWindow(context: Context, baseSize: String): String {
+internal fun fitScreenSizeToWindow(context: Context, baseSize: String, choice: RenderSize = RenderSizes.selected): String {
     val (windowWidth, windowHeight) = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
         context.getSystemService(WindowManager::class.java).currentWindowMetrics.bounds.let { it.width() to it.height() }
     } else {
         context.resources.displayMetrics.let { it.widthPixels to it.heightPixels }
     }
-    return fitScreenSize(baseSize, windowWidth, windowHeight)
+    return renderSize(choice, baseSize, windowWidth, windowHeight)
+}
+
+/**
+ * The game's screen size for [choice]: the device profile's [profileSize] (Automatic) or a fixed size,
+ * reshaped to the window's aspect ratio, or the window's own size (Native), always landscape.
+ */
+internal fun renderSize(choice: RenderSize, profileSize: String, windowWidth: Int, windowHeight: Int): String {
+    if (choice == RenderSize.NATIVE && windowWidth > 0 && windowHeight > 0) {
+        return "${maxOf(windowWidth, windowHeight) / 2 * 2}x${minOf(windowWidth, windowHeight) / 2 * 2}"
+    }
+    return fitScreenSize(choice.size ?: profileSize, windowWidth, windowHeight)
 }
 
 internal fun fitScreenSize(baseSize: String, windowWidth: Int, windowHeight: Int): String {
@@ -976,25 +1000,28 @@ internal fun prepareLaunch(
     check(containerManager.hasContainer(CONTAINER_ID)) { "Container creation failed. Check system storage and logs." }
     containerManager.getContainerById(CONTAINER_ID)?.let {
         hideMouseToggle(it)
+        applyFrameGeneration(context, it)
         it.saveData()
     }
     return CONTAINER_ID
 }
 
-/** Private-server spike: a 32-bit 3.3.5a-era client in its own container, run through WoW64 emulation. */
+/** A 32-bit private server client (1.12.1, 2.4.3 or 3.3.5a) in its own container, run through WoW64 emulation. */
 internal fun prepareLegacyLaunch(
     context: Context,
     settings: LegacySettings,
+    game: LegacyGame,
     gpu: GpuProfile,
     screenSize: String,
     onStatus: (String) -> Unit,
 ): String {
     installBundledComponents(context, onStatus)
     val root = File(settings.root)
-    check(File(root, LegacyClient.EXE).isFile) { "No ${LegacyClient.EXE} in ${settings.root}." }
+    val exe = LegacyClient.exe(root)
+    check(exe.isFile) { "No ${LegacyClient.EXE} in ${settings.root}." }
     check(settings.realmlist.isNotBlank()) { "Enter the server's realmlist address." }
     try {
-        LegacyClient.applyConfig(root, settings, screenSize)
+        LegacyClient.applyConfig(root, settings, screenSize, game)
         app.gamenative.wow.legacy.mods.FastLogin.prepare(context, root, settings)
     } catch (e: Exception) {
         if (e.isPermissionDenied()) throw StorageAccessDeniedException(e)
@@ -1005,7 +1032,7 @@ internal fun prepareLegacyLaunch(
     val config = baseContainerConfig(LEGACY_CONTAINER_ID, "WoW Private Server", root, gpu, screenSize).apply {
         put("dxwrapper", settings.renderer.dxwrapper)
         put("dxwrapperConfig", Container.DEFAULT_DXWRAPPERCONFIG)
-        put("executablePath", "G:\\${LegacyClient.EXE}")
+        put("executablePath", "G:\\${exe.name}")
         put("execArgs", settings.renderer.execArgs)
         put("emulator", LegacyClient.EMULATOR)
         put("box64Version", LegacyClient.WOWBOX64_VERSION)
@@ -1025,8 +1052,10 @@ internal fun prepareLegacyLaunch(
     }
     legacy.putExtra("skipWinHandler", "1")
     legacy.putExtra("wineLog", if (settings.saveLog) "1" else null)
+    legacy.putExtra(PadKeyboardButton.EXTRA, if (ClientMods.loginEnabled(root)) "1" else null)
     hideMouseToggle(legacy)
-    runCatching { ConsolePortLK.applyControls(context, legacy, root) }.onFailure { Timber.w(it, "ConsolePortLK controls") }
+    applyFrameGeneration(context, legacy)
+    runCatching { ConsolePortLK.applyControls(context, legacy, root, always = !game.hasEverywherePatches) }.onFailure { Timber.w(it, "ConsolePortLK controls") }
     legacy.saveData()
     return LEGACY_CONTAINER_ID
 }
@@ -1046,6 +1075,11 @@ private fun containerConfig(gameRoot: File, product: WowProduct, gpu: GpuProfile
         put("execArgs", "-d3d11")
     }
 
+/** Frame generation follows Settings; the in-game menu's own LSFG choices stay in the container. */
+private fun applyFrameGeneration(context: Context, container: Container) {
+    container.putExtra(app.gamenative.utils.LsfgVkManager.EXTRA_ARMED, app.gamenative.wow.FrameGeneration.isArmed(context).toString())
+}
+
 private fun baseContainerConfig(id: String, name: String, gameRoot: File, gpu: GpuProfile, screenSize: String): JSONObject {
     val samsungEnv = if (Build.MANUFACTURER.equals("samsung", ignoreCase = true)) " FD_DEV_FEATURES=enable_tp_ubwc_flag_hint=1" else ""
     val envVars = "WRAPPER_MAX_IMAGE_COUNT=0 ZINK_DESCRIPTORS=lazy ZINK_DEBUG=compact,deck_emu MESA_SHADER_CACHE_DISABLE=false MESA_SHADER_CACHE_MAX_SIZE=512MB mesa_glthread=true WINEESYNC=0 MESA_VK_WSI_PRESENT_MODE=mailbox TU_DEBUG=${gpu.tuDebug} VKD3D_SHADER_MODEL=6_0 PULSE_LATENCY_MSEC=144$samsungEnv"
@@ -1063,6 +1097,8 @@ private fun baseContainerConfig(id: String, name: String, gameRoot: File, gpu: G
         put("fexcoreVersion", "2609-0")
         put("drives", "D:/storage/emulated/0/DownloadE:/data/data/${BuildConfig.APPLICATION_ID}/storageG:${gameRoot.path}")
         put("showFPS", true)
+        // A suspended client drops its server connection, e.g. while the player reads a login code in another app (from upstream).
+        put("suspendPolicy", Container.SUSPEND_POLICY_NEVER)
         put("startupSelection", Container.STARTUP_SELECTION_AGGRESSIVE.toInt())
         put("wow64Mode", true)
         put("wincomponents", "direct3d=0,directsound=0,directinput8=0,directinput=0,directmusic=0,directshow=0,directplay=0,vcrun2010=0,wmdecoder=0,opengl=0")
@@ -1102,6 +1138,9 @@ private fun configDefaults(product: WowProduct, locale: String, portal: String) 
     "groundEffectDensity" to "\"16\"",
     "GamePadEnable" to "\"1\"",
     "InputDeviceInterfaceStyle" to "\"1\"",
+    // Answers the first-run Screen Narrator prompt, which otherwise blocks login.txt auto-login.
+    "showScreenNarrationDialog" to "\"0\"",
+    "accessibilityScreenNarrationEnabled" to "\"0\"",
 ).let { all -> if (product == WowProduct.RETAIL) all.filterKeys { it in RETAIL_DEFAULTS } else all }
 
 internal fun flavorInfoText(product: WowProduct) = "Product Flavor!STRING:0\n${product.code}\n"
@@ -1120,6 +1159,7 @@ private fun ensureGameConfig(root: File, product: WowProduct, screenSize: String
         screenSize,
         installLocale(root, product),
         installPortal(root, product),
+        forcePortal = GameRegions.chosen != null,
     ) ?: return
     configWtf.parentFile?.mkdirs()
     configWtf.writeText(updated.joinToString("\n") + "\n")
@@ -1129,8 +1169,9 @@ private fun ensureGameConfig(root: File, product: WowProduct, screenSize: String
  * Returns the Config.wtf lines to write, or null when [existing] needs no change.
  * Handheld defaults are only written on first boot so in-game changes stick, with two exceptions.
  * gxApi is always forced: DXVK only works with D3D11, and a config copied from a Mac would otherwise
- * select Metal. Resolutions are reset when missing or no longer fitting the screen (e.g. after a fold
- * or unfold): WoW's "auto" otherwise picks a 720p size because it sees a low-end Intel GPU via Wine.
+ * select Metal. Resolutions always match the container, which the launcher sizes from Settings, Resolution:
+ * WoW's "auto" picks a 720p size because it sees a low-end Intel GPU via Wine, and saves that size on exit
+ * as if the player chose it (from upstream).
  */
 internal fun buildConfigWtf(
     existing: List<String>?,
@@ -1138,27 +1179,29 @@ internal fun buildConfigWtf(
     screenSize: String,
     locale: String = "enUS",
     portal: String = product.portal,
+    forcePortal: Boolean = false,
 ): List<String>? {
     if (existing == null) {
         val defaults = configDefaults(product, locale, portal) + RESOLUTION_KEYS.associateWith { "\"$screenSize\"" }
         return defaults.entries.map { "SET ${it.key} ${it.value}" }
     }
-    val staleResolutionKeys = RESOLUTION_KEYS.filter { key ->
-        val line = existing.firstOrNull { it.startsWith("SET $key ", ignoreCase = true) }
-        line == null || !fitsScreen(line.substringAfter(" ").substringAfter(" ").trim('"'), screenSize)
-    }
+    val staleResolutionKeys = RESOLUTION_KEYS.filter { key -> existing.none { it == "SET $key \"$screenSize\"" } }
     // A config carried over from another product (e.g. beta to launch) gets this product's portal and agent.
+    // Once the player has picked a region ([forcePortal]) the portal follows it; before that a hand-edited one stays.
+    val portalLine = "SET portal \"$portal\""
     val missingPortal = existing.none { it.startsWith("SET portal ", ignoreCase = true) }
+    val wrongPortal = forcePortal && existing.any { it.startsWith("SET portal ", ignoreCase = true) && it != portalLine }
     val agentLine = "SET agentUID \"${product.code}\""
     val wrongAgent = existing.any { it.startsWith("SET agentUID ", ignoreCase = true) && it != agentLine }
-    if (existing.any { it == GX_API_LINE } && staleResolutionKeys.isEmpty() && !missingPortal && !wrongAgent) return null
+    if (existing.any { it == GX_API_LINE } && staleResolutionKeys.isEmpty() && !missingPortal && !wrongPortal && !wrongAgent) return null
     return existing.filterNot { line ->
         line.startsWith("SET gxApi ", ignoreCase = true) ||
+            (wrongPortal && line.startsWith("SET portal ", ignoreCase = true)) ||
             (wrongAgent && line.startsWith("SET agentUID ", ignoreCase = true)) ||
             staleResolutionKeys.any { line.startsWith("SET $it ", ignoreCase = true) }
     } + listOfNotNull(
         GX_API_LINE,
-        "SET portal \"$portal\"".takeIf { missingPortal },
+        portalLine.takeIf { missingPortal || wrongPortal },
         agentLine.takeIf { wrongAgent },
     ) + staleResolutionKeys.map { "SET $it \"$screenSize\"" }
 }
@@ -1168,20 +1211,17 @@ internal fun installLocale(root: File, product: WowProduct): String =
     app.gamenative.wow.product.BuildInfo.read(root)?.active(product)?.get("Tags")
         ?.split(" ", ":")?.firstOrNull { Regex("[a-z]{2}[A-Z]{2}").matches(it) } ?: "enUS"
 
-/** Live products use the install's region (its `.build.info` Branch: us, eu, kr, tw) as the portal. */
+/**
+ * Live products use the region the player picked, else the install's own (its `.build.info` Branch:
+ * us, eu, kr, tw), as the portal. The beta always uses its "test" portal.
+ */
 internal fun installPortal(root: File, product: WowProduct): String {
     if (product == WowProduct.BETA) return product.portal
-    val branch = app.gamenative.wow.product.BuildInfo.read(root)?.active(product)?.get("Branch").orEmpty()
-    return branch.takeIf { it.length == 2 }?.uppercase() ?: product.portal
+    val branch = app.gamenative.wow.product.BuildInfo.read(root)?.active(product)?.get("Branch")
+    return GameRegions.chosen?.portal ?: branch?.takeIf { it.length == 2 }?.uppercase() ?: product.portal
 }
 
 private val RESOLUTION_KEYS = listOf("gxFullscreenResolution", "gxWindowedResolution")
-
-internal fun fitsScreen(resolution: String, screenSize: String): Boolean {
-    val (width, height) = resolution.split("x").map { it.toIntOrNull() ?: return false }.takeIf { it.size == 2 } ?: return false
-    val (screenWidth, screenHeight) = screenSize.split("x").map { it.toInt() }
-    return width in 1..screenWidth && height in 1..screenHeight
-}
 
 private fun installBundledComponents(context: Context, onStatus: (String) -> Unit) {
     installDriver(context, DEFAULT_DRIVER, "turnip-wow-scheduler-test.zip", onStatus)

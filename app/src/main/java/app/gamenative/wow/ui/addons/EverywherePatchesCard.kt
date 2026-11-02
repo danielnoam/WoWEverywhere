@@ -12,18 +12,19 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import app.gamenative.wow.legacy.mods.AndroWherePatch
+import app.gamenative.wow.legacy.mods.EverywherePatch
 import app.gamenative.wow.ui.components.FwButton
 import app.gamenative.wow.ui.components.FwButtonKind
 import app.gamenative.wow.ui.theme.Fw
 
-/** On the 3.3.5a Installed list: offers our patches that aren't installed yet, one press each. */
+/** On the 3.3.5a Installed list: offers Controller Menus while it isn't installed. The rest are in the Client tab. */
 @Composable
-internal fun AndroWherePatchesCard(c: AddonsController) {
+internal fun EverywherePatchesCard(c: AddonsController) {
     val mods = c.clientMods ?: return
     LaunchedEffect(mods) { mods.refresh() }
     if (c.mode != AddonsController.Mode.INSTALLED) return
-    val missing = mods.ours?.filterValues { !it }?.keys?.firstOrNull() ?: return
+    if (mods.ours?.get(EverywherePatch.LOGIN) != false) return
+    val login = EverywherePatch.LOGIN
     Row(
         Modifier
             .fillMaxWidth()
@@ -34,15 +35,10 @@ internal fun AndroWherePatchesCard(c: AddonsController) {
         horizontalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Column(Modifier.weight(1f)) {
-            Text("AndroWhere patch: ${missing.title}", style = Fw.Text)
-            Text(
-                when (missing) {
-                    AndroWherePatch.LOGIN -> "Use the controller on the login, realm and character screens too. More AndroWhere patches are in the Client tab."
-                },
-                style = Fw.Secondary,
-            )
+            Text("WoWEverywhere patch: ${login.title}", style = Fw.Text)
+            Text("Use the controller on the login, realm and character screens too. More WoWEverywhere patches are in the Client tab.", style = Fw.Secondary)
         }
-        FwButton("Install", { mods.setInstalled(missing, true) }, enabled = mods.working == null)
+        FwButton("Install", { mods.setInstalled(login, true) }, enabled = mods.working == null)
         FwButton("Client tab", { c.switchMode(AddonsController.Mode.CLIENT) }, kind = FwButtonKind.Ghost)
     }
 }
