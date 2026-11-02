@@ -11,6 +11,17 @@ Only work that's left. Shipped items move to DONE.md, rejected ones to DROPPED.m
 - **Addon catalogs for 4.3.4 and 5.4.8.** Same as above, once Daniel says either runs well enough to play.
 - **Find the fastest settings for 4.3.4 and 5.4.8.** Measure fps against 3.3.5a on the same spot, then decide whether their own lighter-graphics values or Box64 flags are worth it.
 
+## Next: from upstream (WoWForeverywhere 0.6.0 and jaredgei 2.3.3, checked 2026-11-02)
+
+Each is a content port of an upstream commit, kept to new files or thin edits.
+
+- **Keep the game running when switching apps.** Add `suspendPolicy = never` in `baseContainerConfig` (WoWForeverScreen.kt) and the legacy container config, so a paused client doesn't drop its connection while Daniel reads the Warmane email code. Check battery drain on the Odin with the game in the background. Upstream: d62da45.
+- **Resolution always follows Settings.** In `buildConfigWtf`, treat a resolution key as stale unless it equals the container's size, and drop `fitsScreen`. WoW saves its own 720p pick on exit, which otherwise keeps Settings, Resolution from applying. Do the same for the legacy `gxResolution` in LegacyClient.kt if it has the same problem. Upstream: d62da45.
+- **WoW Forever defaults to the launch game (wowf).** Remove `WowProduct.releaseDate` and the date checks in BuildInfo and WowClientDownloader, so the launch build comes before the beta now that it's open. Upstream also added a Launch/Beta choice in Settings and a prompt for beta installs to switch (5095649, 0cca632); port the choice, skip the prompt unless Daniel wants it.
+- **Adreno 8xx detection for Snapdragon 8s Gen 4 (SM8735) and 8 Gen 5 (SM8845).** Add both to `isAdreno8xxDevice`, plus upstream's renderer check (`Adreno 8xx` in the GPU name), and a unit test. Those phones get the 7xx driver today and the game finds no graphics card. Upstream: 65fcde5, d62da45.
+- **Frame generation (LSFG) with the player's own Lossless.dll.** Settings imports the player's copy and has an on/off switch applied at launch; the layer is already bundled. New file like upstream's `wow/FrameGeneration.kt`, hooked into `LsfgVkManager`. Try it on 3.3.5a on the Odin: it adds input lag, so it only helps if 30 to 50 fps feels smoother with it. Never bundle the dll. Upstream: 1c4633c.
+- **Download speed and time left while installing.** Port `install/DownloadSpeed.kt` and the download panel, with the installer counting network bytes separately and reporting during large files. Time left only shows when it can be estimated. Upstream: 60158e5.
+
 ## Later: 6.x and newer private servers
 
 Daniel asked for this on 2026-10-29, gated on 5.4.8 being playable on the Odin. If 5.4.8 isn't, it isn't worth building.
