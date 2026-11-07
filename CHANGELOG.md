@@ -2,7 +2,7 @@
 
 Releases up to 0.4.0 are upstream's (YoruDev-Ryland/WoWForeverywhere), which this fork started from.
 
-## Unreleased
+## 1.2.0
 
 - **A wrong Lossless.dll no longer stops the game.** A Lossless.dll without the frame generation shaders made the game close as it started. The app now checks the file when you add it, warns in Settings if an older one is wrong, and starts the game without frame generation if it is. From upstream WoW Foreverywhere.
 - **Backing out of a stuck start no longer freezes the app.** If the game hung while starting, leaving it could freeze the app until Android closed it. It now gives up after two seconds. From upstream WoW Foreverywhere.
