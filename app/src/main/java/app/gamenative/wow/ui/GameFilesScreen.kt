@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -28,7 +29,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 @Composable
-fun GameFilesScreen(launcher: LauncherController, onBack: () -> Unit, onInstall: () -> Unit) {
+fun GameFilesScreen(launcher: LauncherController, onBack: () -> Unit, onInstall: () -> Unit, onOpenOvernight: () -> Unit) {
+    val install by app.gamenative.wow.install.InstallController.state.collectAsState()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var scanning by remember { mutableStateOf(false) }
@@ -75,8 +77,14 @@ fun GameFilesScreen(launcher: LauncherController, onBack: () -> Unit, onInstall:
                 "Downloads ${launcher.version.displayName} from Blizzard's servers. Repair checks every file and only downloads what's missing or damaged.",
                 style = Fw.Secondary,
             )
-            FwButton(if (launcher.filesMissing) "Install ${launcher.version.displayName}" else "Install or repair", onInstall, enabled = !launcher.busy)
+            FwButton(
+                if (launcher.filesMissing) "Install ${launcher.version.displayName}" else "Install or repair",
+                onInstall,
+                enabled = !launcher.busy && install.fullRequest == null,
+            )
         }
+
+        if (!launcher.filesMissing) FullDownloadSection(launcher, install, onOpenOvernight)
 
         FwSection("Find an existing copy") {
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {

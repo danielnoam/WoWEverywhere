@@ -70,20 +70,30 @@ private val settingsPanes = listOf(
     PaneSpec("App", "App version, updates, resolution and frame generation."),
     PaneSpec("Battle.net", "One saved login for every Blizzard profile."),
     PaneSpec("Addon sources", "Where Addons searches, and your CurseForge key or proxy."),
+    PaneSpec("Addon manager mode", "Use the app only to manage the addons of WoW run some other way."),
     PaneSpec("About", "This device, the project and its source code."),
 )
+
+/** In addon manager mode Settings only has what that mode uses. */
+private val addonModePanes = listOf(settingsPanes[0], settingsPanes[2], settingsPanes[3], settingsPanes[4])
 
 @Composable
 fun SettingsScreen(
     launcher: LauncherController,
     onBack: () -> Unit,
     onEditLogin: () -> Unit,
+    /** The folder addon manager mode manages, or null when the app is the full launcher. */
+    addonFolder: app.gamenative.wow.addons.AddonMode.Folder? = null,
+    onOpenAddonMode: () -> Unit = {},
+    onDisableAddonMode: () -> Unit = {},
 ) {
-    PaneScreen("Settings", settingsPanes, onBack) { pane, setHint ->
-        when (pane) {
-            0 -> AppPane(launcher, setHint)
-            1 -> BattleNetPane(launcher, onEditLogin, setHint)
-            2 -> {
+    val panes = if (addonFolder != null) addonModePanes else settingsPanes
+    PaneScreen("Settings", panes, onBack) { index, setHint ->
+        when (panes[index]) {
+            settingsPanes[0] -> AppPane(launcher, setHint, full = addonFolder == null)
+            settingsPanes[1] -> BattleNetPane(launcher, onEditLogin, setHint)
+            settingsPanes[3] -> AddonModePane(addonFolder, onOpenAddonMode, onDisableAddonMode, setHint)
+            settingsPanes[2] -> {
                 ProviderLine("CurseForge", launcher.curseForge.enabled, offText = "Off: no key or proxy")
                 ProviderLine("Wago Addons", BuildConfig.WAGO_API_KEY.isNotBlank())
                 ProviderLine("WoWInterface", true)
@@ -96,7 +106,7 @@ fun SettingsScreen(
 }
 
 @Composable
-private fun AppPane(launcher: LauncherController, setHint: (String) -> Unit) {
+private fun AppPane(launcher: LauncherController, setHint: (String) -> Unit, full: Boolean = true) {
     Text("${AppName.FULL} v${BuildConfig.VERSION_NAME}", style = Fw.Text)
     val update = launcher.appUpdate
     if (update == null) {
@@ -121,8 +131,39 @@ private fun AppPane(launcher: LauncherController, setHint: (String) -> Unit) {
             )
         }
     }
-    ResolutionChoice(launcher, setHint)
-    FrameGenerationChoice(setHint)
+    if (full) {
+        ResolutionChoice(launcher, setHint)
+        FrameGenerationChoice(setHint)
+    }
+}
+
+/** Settings, Addon manager mode (from upstream): offered from the full launcher, and the way back out of it. */
+@Composable
+private fun AddonModePane(
+    folder: app.gamenative.wow.addons.AddonMode.Folder?,
+    onOpen: () -> Unit,
+    onDisable: () -> Unit,
+    setHint: (String) -> Unit,
+) {
+    if (folder == null) {
+        Text(
+            "Play WoW some other way, such as on a PC or in another app? Addon manager mode turns this app into an addon manager for that install, and turns everything else off.",
+            style = Fw.Secondary,
+        )
+        FwButton(
+            "Use addon manager mode",
+            onOpen,
+            modifier = Modifier.hint("Choose the game's AddOns folder, or the folder that holds it. Your profiles stay and come back when you turn the mode off.", setHint),
+            kind = FwButtonKind.Ghost,
+        )
+    } else {
+        Text("The app manages the ${folder.version?.displayName ?: ""} addons in this folder and nothing else:", style = Fw.Text)
+        Text(folder.addonsDir.path, style = Fw.Data)
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            FwButton("Change folder", onOpen, modifier = Modifier.hint("Pick another AddOns folder to manage.", setHint), kind = FwButtonKind.Ghost)
+            FwButton("Turn off addon manager mode", onDisable, modifier = Modifier.hint("Brings back the launcher and your profiles.", setHint))
+        }
+    }
 }
 
 /** Settings, App: the game's screen size, from the device profile or picked here. */
@@ -202,6 +243,8 @@ private fun BattleNetPane(launcher: LauncherController, onEditLogin: () -> Unit,
     }
     Text("Authenticator codes are still typed in the game. Private servers use the password on their Server screen.", style = Fw.Secondary)
     RegionChoice(launcher, setHint)
+    GameAccountChoice(setHint)
+    BlockedLoginHelp(setHint)
 }
 
 @Composable

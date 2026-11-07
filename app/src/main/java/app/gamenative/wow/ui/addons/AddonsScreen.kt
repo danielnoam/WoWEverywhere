@@ -85,8 +85,9 @@ fun AddonsRoute(launcher: LauncherController, addons: AddonsController?, onBack:
     AddonsScreen(addons, onBack)
 }
 
+/** The addon browser. With [onSettings] it's the main screen in addon manager mode, and a Settings button takes Back's place. */
 @Composable
-fun AddonsScreen(c: AddonsController, onBack: () -> Unit) {
+fun AddonsScreen(c: AddonsController, onBack: () -> Unit, onSettings: (() -> Unit)? = null) {
     var showUrlDialog by remember { mutableStateOf(false) }
     val wideBar = androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp >= 600
     LaunchedEffect(c) { if (c.installed == null) c.refreshInstalled() }
@@ -98,7 +99,7 @@ fun AddonsScreen(c: AddonsController, onBack: () -> Unit) {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            FwButton("Back", onBack, kind = FwButtonKind.Ghost)
+            if (onSettings != null) FwButton("Settings", onSettings, kind = FwButtonKind.Ghost) else FwButton("Back", onBack, kind = FwButtonKind.Ghost)
             FwChip("Installed ${c.installed?.size ?: "…"}", c.mode == AddonsController.Mode.INSTALLED, { c.switchMode(AddonsController.Mode.INSTALLED) })
             FwChip("Browse", c.mode == AddonsController.Mode.BROWSE, { c.switchMode(AddonsController.Mode.BROWSE) })
             if (c.clientMods != null) FwChip("Client", c.mode == AddonsController.Mode.CLIENT, { c.switchMode(AddonsController.Mode.CLIENT) })
