@@ -11,6 +11,15 @@ Only work that's left. Shipped items move to DONE.md, rejected ones to DROPPED.m
 - **Addon catalogs for 4.3.4 and 5.4.8.** Same as above, once Daniel says either runs well enough to play.
 - **Find the fastest settings for 4.3.4 and 5.4.8.** Measure fps against 3.3.5a on the same spot, then decide whether their own lighter-graphics values or Box64 flags are worth it.
 
+## Later: full touch play on private servers
+
+Daniel picked "both, menus first" on 2026-11-07 after looking at WoW Imito. Touch for menus is built (see DONE.md); this is the phone-style rest. It's a new look, so show a mock-up and wait for Daniel's OK before building.
+
+- **Joystick and camera in the app.** In 3.3.5a, movement functions only run from a key or click, so an add-on can't drive a joystick. Use a Winlator on-screen controls profile instead, like the ConsolePortLK one: a stick bottom left that sends W, A, S, D (with a walk/run toggle), and dragging on empty screen to turn the camera. Show it only while no controller is connected, the same way the existing on-screen controls decide.
+- **Action buttons in the game.** Our own add-on in the Client tab's WoWEverywhere patches: large Jump and Target buttons and a ring of secure action buttons bound to the action bars, so a tap casts through Blizzard's own buttons, plus an optional second row. Starts on 3.3.5a. 1.12.1 and 2.4.3 follow once Controller Menus works there.
+- **Move and resize.** A /touch layout mode in the add-on that saves positions and sizes per character in SavedVariables.
+- **Check it on a phone-sized screen.** The Odin's 6-inch screen at 720p is the smallest target. Measure frame rate with the add-on on and off in Dalaran, because extra frames on screen cost CPU on this emulated path.
+
 ## Parked: WoW Forever Launch or Beta setting
 
 - **Choose WoW Forever's launch game or the beta.** Upstream has this as an app-wide setting (5095649) with a prompt on start for beta installs. Here it would need to be per profile. Only worth it if Blizzard opens a new beta or test phase.

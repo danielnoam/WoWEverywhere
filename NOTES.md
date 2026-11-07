@@ -2,6 +2,12 @@
 
 Why things are the way they are, newest first.
 
+## 2026-11-07: Touch for menus on private servers, and what WoW Imito showed
+
+Daniel shared MrAnonymz/WoW-Imito. Its launcher is closed source (only the README, release notes, licence texts and two Wine wined3d patches are public), so no code was taken, only ideas. Its APK shows a classic Winlator stack (Wine 10.10, Box64 0.4.5, DXVK, Turnip v27) and a large in-game touch add-on. Daniel liked the touch controls and picked menus first, full touch play later (planned in TODO.md).
+
+Touch for menus uses the touchscreen mode the app already had, so no new screens were needed. The private server container gets touchscreen mode on and a WoW gesture set once (`TouchMenus`, container extra `touchMenus`). It's only applied once so that turning it off or changing gestures in the in-game menu sticks. The base gesture code had no way to scroll a list by dragging, and WoW lists only scroll with the wheel, so a Scroll Wheel drag action was added to the gesture code (a thin edit to upstream's `TouchpadView`, also offered in the gesture settings). The pointer is pinned where the two fingers land, so the wheel keeps going to that list while the fingers move. One finger dragging still holds the left button, which moves items in bags and turns the camera in the world, as a mouse drag does in WoW. Untested on the Odin: the step size (48 px per wheel step), whether a long press at 450 ms feels right, and whether touchscreen mode changes anything for ConsolePortLK's cursor.
+
 ## 2026-11-07: Upstream 0.7.0 to 1.0.3 ported, except the debug report
 
 Checked upstream up to e4d7a37 (v1.0.3); jaredgei's original has nothing after 2.3.3. Daniel asked for everything but the debug report, so upstream's LaunchProbe (debug logging of stuck processes) and its debug report changes were left out; the wineserver -k timeout and the Android 17 shim from the same commits were kept.

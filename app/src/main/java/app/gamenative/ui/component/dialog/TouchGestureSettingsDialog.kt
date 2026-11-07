@@ -41,6 +41,7 @@ import app.gamenative.data.TouchGestureConfig.Companion.PAN_INVERTED_WASD
 import app.gamenative.data.TouchGestureConfig.Companion.PAN_LEFT_CLICK_DRAG
 import app.gamenative.data.TouchGestureConfig.Companion.PAN_MIDDLE_MOUSE
 import app.gamenative.data.TouchGestureConfig.Companion.PAN_RIGHT_CLICK_DRAG
+import app.gamenative.data.TouchGestureConfig.Companion.PAN_SCROLL_WHEEL
 import app.gamenative.data.TouchGestureConfig.Companion.PAN_WASD
 import app.gamenative.data.TouchGestureConfig.Companion.ZOOM_ACTIONS
 import app.gamenative.data.TouchGestureConfig.Companion.ZOOM_PAGE_UP_DOWN
@@ -571,6 +572,7 @@ private fun panSingleActionLabel(action: String): String = when (action) {
     PAN_INVERTED_ARROW_KEYS -> stringResource(R.string.gesture_pan_inverted_arrow_keys)
     PAN_LEFT_CLICK_DRAG -> stringResource(R.string.gesture_pan_left_click_drag)
     PAN_RIGHT_CLICK_DRAG -> stringResource(R.string.gesture_pan_right_click_drag)
+    PAN_SCROLL_WHEEL -> stringResource(R.string.gesture_pan_scroll_wheel)
     else -> action
 }
 

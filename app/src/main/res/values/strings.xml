@@ -442,6 +442,7 @@
     <string name="gesture_pan_inverted_arrow_keys">Inverted Arrow Keys</string>
     <string name="gesture_pan_left_click_drag">Left Click Drag</string>
     <string name="gesture_pan_right_click_drag">Right Click Drag</string>
+    <string name="gesture_pan_scroll_wheel">Scroll Wheel</string>
     <string name="gesture_zoom_scroll_wheel">Scroll Wheel</string>
     <string name="gesture_zoom_plus_minus">+/- Keys</string>
     <string name="gesture_zoom_page_up_down">Page Up/Down</string>
