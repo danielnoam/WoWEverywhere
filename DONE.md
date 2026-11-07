@@ -9,7 +9,9 @@ What the app does, by area, with the version each feature came in. Versions up t
 - Resolution follows the screen size and aspect ratio, keeping the user's game settings (base)
 - Resolution choice in Settings, App: Automatic, 720p, 900p, 1080p or Native, for every profile (1.0.0, from upstream 0.5.0); applied at every start even after WoW saves its own (1.1.0, from upstream 0.6.0)
 - Game keeps running when switching apps, so the server connection survives reading a login code (1.1.0, from upstream 0.6.0)
-- Frame generation (LSFG) with the player's own Lossless.dll, on or off in Settings, App, for every profile (1.1.0, from upstream 0.6.0)
+- Frame generation (LSFG) with the player's own Lossless.dll, on or off in Settings, App, for every profile (1.1.0, from upstream 0.6.0); a DLL without the shaders is refused or left out at launch (next release, from upstream 1.0.3)
+- Backing out of a stuck start kills Wine after two seconds instead of freezing the app (next release, from upstream 1.0.1)
+- Android 17 loads the minimal libredirect shim so Wine doesn't hang at start (next release, from upstream 1.0.1)
 - Handheld graphics defaults and gamepad mode on in Config.wtf (base)
 - Warning before launching on a device without an Adreno GPU (0.2.0)
 - Stall watchdog writes what blocked the main thread to `crash_logs/` (0.3.0)
@@ -20,11 +22,14 @@ What the app does, by area, with the version each feature came in. Versions up t
 - Resumable, verified game installer from Blizzard's CDN to internal storage or SD card (0.2.0)
 - Install runs as a foreground service with pause, resume, cancel and progress notification (0.2.0)
 - Download speed and time left while installing, updating or switching to the launch version (1.1.0, from upstream 0.6.0)
+- Download all game data (about 50 GB for WoW Forever) into the game's own storage, resumable, swapped in when the game is closed, with Overnight mode (next release, from upstream 0.7.0)
 - Finds and adopts existing installs, including ones copied from a PC (0.2.0)
 - Game updates before Play, using the full installer so data files are patched too (0.2.0)
 - WoW Forever beta and launch versions, with a switch that reuses game data (0.2.0); launch preferred whenever Blizzard lists it, no fixed date (1.1.0, from upstream 0.6.0)
 - Install language written to Config.wtf (0.2.0)
 - Battle.net region chosen at install and in Settings, Battle.net, written as the portal (1.0.0, from upstream 0.5.0)
+- WoW game account (WoW1 to WoW8) picked in Settings, Battle.net, marked in Config.wtf's accountList (next release, from upstream 1.0.0)
+- Fix a blocked login in Settings, Battle.net: steps for BLZ51914400 and BLZ51914500 and a battle.net link (next release, from upstream 1.0.2 and 1.0.3)
 - New WoW Forever configs answer the Screen Narrator prompt so login.txt auto login goes through (1.0.0, from jaredgei 2.3.0)
 
 ## Game versions
@@ -51,6 +56,7 @@ What the app does, by area, with the version each feature came in. Versions up t
 ## Addons
 
 - Addon manager: browse, search, install, update, update all and safe removal, with dependency resolution (0.2.0)
+- Addon manager mode: the app manages only one AddOns folder of a WoW run some other way, from the welcome screen or Settings (next release, from upstream 0.7.0)
 - Merges the same addon across sites despite author or title differences (0.2.0)
 - Icons, descriptions, screenshots and category browsing (0.2.0)
 - Forever and Classic marks with Blizzard's round game icons (0.2.0)

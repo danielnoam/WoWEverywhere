@@ -48,6 +48,7 @@ internal fun FrameGenerationChoice(setHint: (String) -> Unit) {
             message = when (result) {
                 FrameGeneration.ImportResult.OK -> null
                 FrameGeneration.ImportResult.NOT_A_DLL -> "That file isn't Lossless.dll. Pick the one from your Lossless Scaling folder."
+                FrameGeneration.ImportResult.NO_SHADERS -> "That Lossless.dll doesn't have the frame generation shaders. Use the one from a current Steam install of Lossless Scaling."
                 FrameGeneration.ImportResult.FAILED -> "Couldn't read that file. Try copying it to the device again."
             }
             hasDll = FrameGeneration.hasDll(context)
@@ -56,6 +57,13 @@ internal fun FrameGenerationChoice(setHint: (String) -> Unit) {
     }
     Text("Frame generation", style = Fw.Text, modifier = Modifier.padding(top = 8.dp))
     if (hasDll) {
+        val usable = remember(hasDll, message) { FrameGeneration.hasShaders(context) }
+        if (!usable) {
+            Text(
+                "This Lossless.dll doesn't have the frame generation shaders, so the game starts without frame generation. Choose the one from a current Steam install of Lossless Scaling.",
+                style = Fw.Secondary.copy(color = Fw.Warn),
+            )
+        }
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             listOf(true to "On", false to "Off").forEach { (value, label) ->
                 FwRow(

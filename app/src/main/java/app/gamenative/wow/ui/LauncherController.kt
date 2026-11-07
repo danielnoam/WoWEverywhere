@@ -727,6 +727,13 @@ class LauncherController(
     }
 
     /** Upstream's start-up sequence: auto-launch only when files, login, game and app are all current. */
+    /** Start-up in addon manager mode: no game checks and never an auto-launch, only the app update check (from upstream). */
+    fun startAddonMode() {
+        WoWLauncherState.shouldAutoLaunch = false
+        PluviaApp.events.emit(AndroidEvent.ClearBootingSplash)
+        checkAppUpdate()
+    }
+
     suspend fun start() = coroutineScope {
         val ready = checkFiles()
         if (!files.hasStorageAccess && (files.dataExists || files.buildInfoExists)) needsStoragePermission = true

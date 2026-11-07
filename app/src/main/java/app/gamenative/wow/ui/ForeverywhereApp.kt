@@ -19,7 +19,12 @@ import app.gamenative.PluviaApp
 import app.gamenative.events.AndroidEvent
 import app.gamenative.ui.screen.wow.BattleNetCredentialDialog
 import app.gamenative.wow.AppName
+import app.gamenative.wow.addons.AddonMode
+import app.gamenative.wow.product.GameVersion
+import app.gamenative.wow.ui.addons.AddonsController
 import app.gamenative.wow.ui.addons.AddonsRoute
+import app.gamenative.wow.ui.addons.AddonsScreen
+import kotlinx.coroutines.launch
 import app.gamenative.wow.ui.addons.addonsControllerFor
 import app.gamenative.wow.ui.addons.legacyAddonsControllerFor
 import app.gamenative.wow.ui.components.FwDialog
@@ -38,6 +43,9 @@ object Routes {
     const val SETTINGS = "settings"
     const val FIRST_RUN = "firstrun"
     const val INSTALL = "install"
+    const val OVERNIGHT = "overnight"
+    const val ADDON_MODE = "addonmode"
+    const val ADDON_MODE_SETUP = "addonmodesetup"
 }
 
 /** The app's own screens. Hosted by upstream's NavHost in place of `WoWForeverScreen`. */
@@ -59,10 +67,17 @@ fun ForeverywhereApp(onLaunch: (appId: String) -> Unit) {
     LaunchedEffect(addonsNow) { addonsNow?.refreshInstalled() }
     // The nav graph is built once, so destinations read this state instead of capturing a stale value.
     val addonsState = rememberUpdatedState(addonsNow)
+    // Addon manager mode (from upstream): the app only manages this folder's addons, for a game run some other way.
+    var addonFolder by remember { mutableStateOf(AddonMode.folder(context)) }
+    val modeAddons = remember(addonFolder, launcher.curseForge) {
+        addonFolder?.let { AddonsController(it.addonsDir, it.version ?: GameVersion.FOREVER, scope, launcher.curseForge) }
+    }
+    val modeAddonsState = rememberUpdatedState(modeAddons)
 
     // Decided once: recomputing it would rebuild the graph and drop first-run mid-way when an install appears.
     val startRoute = remember {
         when {
+            addonFolder != null -> Routes.ADDON_MODE
             launcher.profile == null -> Routes.NEW_PROFILE
             needsFirstRun(launcher) -> Routes.FIRST_RUN
             else -> Routes.HOME
@@ -75,7 +90,11 @@ fun ForeverywhereApp(onLaunch: (appId: String) -> Unit) {
     val openGame = { nav.navigate(if (needsFirstRun(launcher)) Routes.FIRST_RUN else Routes.GAME) }
     val newProfile = { nav.navigate(Routes.NEW_PROFILE) }
 
-    LaunchedEffect(Unit) { launcher.start() }
+    LaunchedEffect(Unit) { if (addonFolder != null) launcher.startAddonMode() else launcher.start() }
+    val onAddonModeStarted: (AddonMode.Folder) -> Unit = { folder ->
+        addonFolder = folder
+        nav.navigate(Routes.ADDON_MODE) { popUpTo(nav.graph.id) { inclusive = true } }
+    }
     LifecycleResumeEffect(launcher.gamePath) {
         launcher.onResume()
         onPauseOrDispose { launcher.onPause() }
@@ -109,11 +128,37 @@ fun ForeverywhereApp(onLaunch: (appId: String) -> Unit) {
                     if (launcher.isPrivate) {
                         LegacyServerScreen(launcher, onBack = { nav.popBackStack() })
                     } else {
-                        GameFilesScreen(launcher, onBack = { nav.popBackStack() }, onInstall = { nav.navigate(Routes.INSTALL) })
+                        GameFilesScreen(
+                            launcher,
+                            onBack = { nav.popBackStack() },
+                            onInstall = { nav.navigate(Routes.INSTALL) },
+                            onOpenOvernight = { nav.navigate(Routes.OVERNIGHT) },
+                        )
                     }
                 }
+                composable(Routes.OVERNIGHT) { OvernightScreen(onBack = { nav.popBackStack() }) }
                 composable(Routes.CLIENT) { LegacyClientScreen(launcher, onBack = { nav.popBackStack() }) }
-                composable(Routes.SETTINGS) { SettingsScreen(launcher, onBack = { nav.popBackStack() }, onEditLogin = { showLoginDialog = true }) }
+                composable(Routes.SETTINGS) {
+                    SettingsScreen(
+                        launcher,
+                        onBack = { nav.popBackStack() },
+                        onEditLogin = { showLoginDialog = true },
+                        addonFolder = addonFolder,
+                        onOpenAddonMode = { nav.navigate(Routes.ADDON_MODE_SETUP) },
+                        onDisableAddonMode = {
+                            AddonMode.disable(context)
+                            addonFolder = null
+                            nav.navigate(if (launcher.profile == null) Routes.NEW_PROFILE else Routes.HOME) { popUpTo(nav.graph.id) { inclusive = true } }
+                            scope.launch { launcher.start() }
+                        },
+                    )
+                }
+                composable(Routes.ADDON_MODE) {
+                    modeAddonsState.value?.let { AddonsScreen(it, onBack = {}, onSettings = { nav.navigate(Routes.SETTINGS) }) }
+                }
+                composable(Routes.ADDON_MODE_SETUP) {
+                    AddonModeScreen(onBack = { nav.popBackStack() }, onStarted = onAddonModeStarted)
+                }
                 composable(Routes.NEW_PROFILE) {
                     NewProfileScreen(
                         launcher,
@@ -142,6 +187,7 @@ fun ForeverywhereApp(onLaunch: (appId: String) -> Unit) {
                         onDone = toHome,
                         // "Playing another version of WoW?": a new profile replaces this one while it has no folder.
                         onOpenSettings = newProfile,
+                        onOpenAddonMode = { nav.navigate(Routes.ADDON_MODE_SETUP) },
                     )
                 }
             }
@@ -156,7 +202,7 @@ fun ForeverywhereApp(onLaunch: (appId: String) -> Unit) {
                 },
             )
         }
-        if (launcher.needsStoragePermission) {
+        if (launcher.needsStoragePermission && addonFolder == null) {
             FwDialog(
                 title = "Allow file access",
                 message = "Android needs \"All files access\" so the app can install and update the game in this folder. Turn on \"Allow access to manage all files\" on the next screen.",

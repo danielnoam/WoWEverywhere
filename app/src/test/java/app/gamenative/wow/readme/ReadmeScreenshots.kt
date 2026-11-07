@@ -84,7 +84,7 @@ class ReadmeScreenshots {
                         Screen.HOME -> HomeScreen(launcher, 0, 4, {}, {}, {}, {}, {})
                         Screen.SERVER -> LegacyServerScreen(launcher) {}
                         Screen.CLIENT -> LegacyClientScreen(launcher) {}
-                        Screen.ADDONS, Screen.PATCHES, Screen.BROWSE -> AddonsScreen(addons) {}
+                        Screen.ADDONS, Screen.PATCHES, Screen.BROWSE -> AddonsScreen(addons, onBack = {})
                         Screen.SETTINGS -> SettingsScreen(launcher, onBack = {}, onEditLogin = {})
                     }
                 }

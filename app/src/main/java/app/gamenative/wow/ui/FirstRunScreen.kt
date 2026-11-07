@@ -67,6 +67,7 @@ fun FirstRunScreen(
     onDone: () -> Unit,
     startAtInstall: Boolean = false,
     onOpenSettings: () -> Unit = {},
+    onOpenAddonMode: () -> Unit = {},
 ) {
     var step by remember { mutableStateOf(if (startAtInstall) Step.INSTALL else Step.WELCOME) }
     var installedFresh by remember { mutableStateOf(false) }
@@ -87,7 +88,7 @@ fun FirstRunScreen(
             verticalArrangement = Arrangement.spacedBy(18.dp),
         ) {
             when (step) {
-                Step.WELCOME -> Welcome(launcher.version, onNext = { step = Step.FIND }, onOpenSettings = onOpenSettings)
+                Step.WELCOME -> Welcome(launcher.version, onNext = { step = Step.FIND }, onOpenSettings = onOpenSettings, onOpenAddonMode = onOpenAddonMode)
                 Step.FIND -> FindGame(
                     launcher,
                     onUse = { step = Step.SIGN_IN },
@@ -114,7 +115,7 @@ private fun FwStepPill(label: String, current: Boolean) {
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun Welcome(version: GameVersion, onNext: () -> Unit, onOpenSettings: () -> Unit) {
+private fun Welcome(version: GameVersion, onNext: () -> Unit, onOpenSettings: () -> Unit, onOpenAddonMode: () -> Unit) {
     val context = LocalContext.current
     val check = remember { DeviceCheck.run(context) }
     Text("${version.displayName}, on this device", style = Fw.Hero.copy(fontSize = 40.sp, lineHeight = 44.sp))
@@ -139,6 +140,7 @@ private fun Welcome(version: GameVersion, onNext: () -> Unit, onOpenSettings: ()
         FwButton("Get started", onNext)
         FwButton("Playing another version of WoW?", onOpenSettings, kind = FwButtonKind.Ghost)
     }
+    app.gamenative.wow.ui.components.FwLink("Already play WoW another way? Use the app only as an addon manager", onOpenAddonMode)
 }
 
 object DeviceCheck {
@@ -234,7 +236,8 @@ fun InstallStep(launcher: LauncherController, onDone: () -> Unit, onBack: () -> 
         }
     }
     LaunchedEffect(state) {
-        (state as? InstallUiState.Done)?.let {
+        // A finished full download belongs to Game files, not to this install.
+        (state as? InstallUiState.Done)?.takeIf { !it.full }?.let {
             launcher.selectInstall(it.install)
             InstallController.reset()
             onDone()
