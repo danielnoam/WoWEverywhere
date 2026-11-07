@@ -2,6 +2,10 @@
 
 Releases up to 0.4.0 are upstream's (YoruDev-Ryland/WoWForeverywhere), which this fork started from.
 
+## Unreleased
+
+- **Touch for menus on private servers.** You can now use the screen alongside the controller. A tap clicks where your finger is, so bags, the auction house, quest text and talents work by hand. Drag two fingers to scroll the list or text under them. Hold a finger on an item to use or equip it, and tap with two fingers to right-click. The mouse pointer stays visible so item tooltips show. It's on the first time you start a private server game after updating. To turn it off, open the in-game menu and switch off Touchscreen mode. The gear next to it changes the gestures.
+
 ## 1.1.0
 
 - **The game keeps running when you switch apps.** Before, the game paused when you left the app, which could drop your connection to the server, for example while you read a login code in your email. It now keeps running in the background for every profile. From upstream WoW Foreverywhere.

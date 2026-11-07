@@ -46,6 +46,7 @@ What the app does, by area, with the version each feature came in. Versions up t
 - Performance overlay for private server launches: DXVK frame rate, frame times and GPU load (0.5.0)
 - Use lighter graphics: one tap writes CPU-light 3.3.5a settings to Config.wtf (0.5.0)
 - Faster emulation: opt-in Box64 flags on top of the Performance preset for 3.3.5a (0.8.4)
+- Touch for menus on private server clients, on by default once: taps click, two-finger drag scrolls the list under the fingers (new Scroll Wheel drag gesture), holding a finger right-clicks, the pointer stays visible for tooltips (unreleased)
 - 3.3.5a runs on wowbox64 0.4.4, built in CI from the official Box64 tag (0.8.4)
 
 ## Addons

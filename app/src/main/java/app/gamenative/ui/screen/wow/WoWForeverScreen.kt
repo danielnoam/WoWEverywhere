@@ -1054,6 +1054,7 @@ internal fun prepareLegacyLaunch(
     legacy.putExtra("wineLog", if (settings.saveLog) "1" else null)
     legacy.putExtra(PadKeyboardButton.EXTRA, if (ClientMods.loginEnabled(root)) "1" else null)
     hideMouseToggle(legacy)
+    app.gamenative.wow.legacy.TouchMenus.applyOnce(legacy)
     applyFrameGeneration(context, legacy)
     runCatching { ConsolePortLK.applyControls(context, legacy, root, always = !game.hasEverywherePatches) }.onFailure { Timber.w(it, "ConsolePortLK controls") }
     legacy.saveData()

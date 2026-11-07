@@ -100,6 +100,9 @@ public class TouchpadView extends View implements View.OnCapturedPointerListener
 
     // Two-finger tracking
     private boolean twoFingerDragging;
+    private static final float WHEEL_STEP_PX = 48f;
+    private boolean wheelScrollAnchored;
+    private float wheelScrollAccum;
     private float twoFingerLastX0, twoFingerLastY0;
     private float twoFingerLastX1, twoFingerLastY1;
     private boolean twoFingerMiddleButtonDown;
@@ -837,6 +840,8 @@ public class TouchpadView extends View implements View.OnCapturedPointerListener
         movedBeyondTapThreshold = false;
         multiFingerGestureUsed = false;
         twoFingerDragging = false;
+        wheelScrollAnchored = false;
+        wheelScrollAccum = 0f;
         twoFingerTapPossible = false;
         twoFingerTapFired = false;
         twoFingerMiddleButtonDown = false;
@@ -919,6 +924,8 @@ public class TouchpadView extends View implements View.OnCapturedPointerListener
         if (gestureFingerCount == 2 && gestureOwnedPointerIds.size() >= 2) {
             twoFingerTapPossible = true;
             twoFingerDragging = false;
+            wheelScrollAnchored = false;
+            wheelScrollAccum = 0f;
             twoFingerGestureMode = TWO_FINGER_GESTURE_NONE;
             twoFingerHoldTriggered = twoFingerHoldActionHeld = false;
             accumulatedPinchDelta = 0;
@@ -1175,6 +1182,9 @@ public class TouchpadView extends View implements View.OnCapturedPointerListener
                     twoFingerDragging = true;
                     performClickDragAt(midX, midY, twoFingerDragAction);
                 }
+            } else if (TouchGestureConfig.PAN_SCROLL_WHEEL.equals(TouchGestureConfig.primaryAction(twoFingerDragAction))) {
+                twoFingerDragging = true;
+                performWheelScroll(midX, midY, dy);
             } else if (Math.abs(dx) > 3f || Math.abs(dy) > 3f) {
                 twoFingerDragging = true;
                 performPanAction(dx, dy, twoFingerDragAction);
@@ -1213,6 +1223,8 @@ public class TouchpadView extends View implements View.OnCapturedPointerListener
         releasePanKeys();
         releaseAllDragButtons();
         twoFingerDragging = false;
+        wheelScrollAnchored = false;
+        wheelScrollAccum = 0f;
         twoFingerTapPossible = false;
         twoFingerGestureMode = TWO_FINGER_GESTURE_NONE;
         accumulatedPinchDelta = 0;
@@ -1347,6 +1359,8 @@ public class TouchpadView extends View implements View.OnCapturedPointerListener
         releaseAllDragButtons();
         isDragging = false;
         twoFingerDragging = false;
+        wheelScrollAnchored = false;
+        wheelScrollAccum = 0f;
         twoFingerGestureMode = TWO_FINGER_GESTURE_NONE;
         threeFingerDragging = false;
         threeFingerTapPossible = false;
@@ -1380,6 +1394,8 @@ public class TouchpadView extends View implements View.OnCapturedPointerListener
         releasePanKeys();
         releaseAllDragButtons();
         twoFingerDragging = false;
+        wheelScrollAnchored = false;
+        wheelScrollAccum = 0f;
         twoFingerTapPossible = false;
         twoFingerGestureMode = TWO_FINGER_GESTURE_NONE;
 
@@ -1848,6 +1864,33 @@ public class TouchpadView extends View implements View.OnCapturedPointerListener
             case TouchGestureConfig.PAN_RIGHT_CLICK_DRAG:
                 performClickDrag(dx, dy, Pointer.Button.BUTTON_RIGHT);
                 break;
+            case TouchGestureConfig.PAN_SCROLL_WHEEL:
+                scrollWheelBy(dy);
+                break;
+        }
+    }
+
+    /**
+     * Two-finger drag as mouse wheel steps, phone style: fingers moving down scroll the content up. The cursor stays
+     * where the gesture began, so the list under the fingers keeps getting the wheel.
+     */
+    private void performWheelScroll(float rawX, float rawY, float dy) {
+        if (!wheelScrollAnchored) {
+            float[] pt = XForm.transformPoint(xform, rawX, rawY);
+            moveCursorTo((int) pt[0], (int) pt[1]);
+            wheelScrollAnchored = true;
+        }
+        scrollWheelBy(dy);
+    }
+
+    private void scrollWheelBy(float dy) {
+        wheelScrollAccum += dy;
+        while (Math.abs(wheelScrollAccum) >= WHEEL_STEP_PX) {
+            boolean down = wheelScrollAccum > 0;
+            Pointer.Button btn = down ? Pointer.Button.BUTTON_SCROLL_UP : Pointer.Button.BUTTON_SCROLL_DOWN;
+            xServer.injectPointerButtonPress(btn);
+            xServer.injectPointerButtonRelease(btn);
+            wheelScrollAccum += down ? -WHEEL_STEP_PX : WHEEL_STEP_PX;
         }
     }
 
