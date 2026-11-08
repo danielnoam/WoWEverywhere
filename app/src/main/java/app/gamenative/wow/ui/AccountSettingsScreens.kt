@@ -110,7 +110,10 @@ private fun AppPane(launcher: LauncherController, setHint: (String) -> Unit, ful
     Text("${AppName.FULL} v${BuildConfig.VERSION_NAME}", style = Fw.Text)
     val update = launcher.appUpdate
     if (update == null) {
-        Text("No app update found.", style = Fw.Secondary)
+        Text(
+            if (launcher.appUpdateCheckFailed) "Couldn't reach GitHub to check for an update. Try again later." else "No app update found.",
+            style = Fw.Secondary,
+        )
         FwButton(
             "Check for app update",
             launcher::checkAppUpdate,

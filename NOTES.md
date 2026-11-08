@@ -2,6 +2,10 @@
 
 Why things are the way they are, newest first.
 
+## 2026-11-08: App update check falls back to the releases page
+
+Daniel, on 1.1.0, saw no update although 1.2.0 and 1.3.0 were out. The checker's URL, tag parsing and asset name were all correct (checked against the live API), so the request itself must have failed on the phone. The likeliest cause is GitHub's unauthenticated API limit of 60 requests an hour per IP: mobile carriers put many phones behind one address, and the old code turned any non-200 into "No app update found". This is a guess, not confirmed from a phone log. The checker now tries the API first, then reads the tag from the `github.com/<repo>/releases/latest` redirect (not API-limited), builds the APK URL from the tag and fetches the notes from `.github/release-notes.md` on raw.githubusercontent.com. Settings says when GitHub couldn't be reached. Nothing new leaves the device: the same GitHub hosts as before. No token is used, on purpose.
+
 ## 2026-11-07: Touch for menus on private servers, and what WoW Imito showed
 
 Daniel shared MrAnonymz/WoW-Imito. Its launcher is closed source (only the README, release notes, licence texts and two Wine wined3d patches are public), so no code was taken, only ideas. Its APK shows a classic Winlator stack (Wine 10.10, Box64 0.4.5, DXVK, Turnip v27) and a large in-game touch add-on. Daniel liked the touch controls and picked menus first, full touch play later (planned in TODO.md).
