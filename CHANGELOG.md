@@ -2,7 +2,7 @@
 
 Releases up to 0.4.0 are upstream's (YoruDev-Ryland/WoWForeverywhere), which this fork started from.
 
-## Unreleased
+## 1.3.1
 
 - **The app finds its updates more reliably.** The update check used GitHub's API, which allows only 60 checks an hour from one internet address. On mobile data many phones share one address, so the check could fail and the app said no update was found. It now falls back to GitHub's releases page, and Settings says when it couldn't reach GitHub instead of saying there is no update.
 
